@@ -1,4 +1,4 @@
-include README.rst
-include GPyM/scattering/*
-include GPyM/scattering/DDA_dbase/*
-include GPyM/scattering/Tmatrix_dbase/*
+include README.md
+include gpym/scattering/*
+include gpym/scattering/DDA_dbase/*
+include gpym/scattering/Tmatrix_dbase/*
