@@ -15,7 +15,7 @@ setup(name='gpym',
       zip_safe=False,
       include_package_data=True,
       install_requires=[
-          'numpy', 'scipy', 'pandas',
+          'numpy', 'scipy', 'pandas', 'scikit-image',
           'matplotlib', 'cartopy',
           'xarray', 'dask', 'zarr', 'h5py', 'netCDF4', 'bottleneck', 'h5netcdf', 'pynvml',
           'astropy', 'itur'])
