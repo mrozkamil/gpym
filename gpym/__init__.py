@@ -5,3 +5,4 @@ from . import tools
 from . import io
 from . import psd
 from . import env
+from . import GPM

@@ -102,7 +102,8 @@ class PSD():
         D is assumed to be in [m]
         we assume the following mass-diameter relation:
             m [kg] = a D^b
-            where a = pi/6*1e3, b = 3 (i.e. water, D is the equivalent volume diameter)
+            where a = pi/6*1e3, b = 3 (i.e. water density is used,
+                                       D is the equivalent volume diameter)
         please modify the atributes mD_a and mD_b for any changes, 
         alternatively a handel to the mass-diamter function can be implicitely provided
     Attributes:
@@ -121,7 +122,10 @@ class PSD():
         self.D_max = D_max
         mD_a = np.pi/6*1e3 if mD_a is None else mD_a
         mD_b = 3 if mD_b is None else mD_b
-        self.mass_function = lambda D: mD_a* np.power(D, mD_b)
+        if mass_function is None:
+            self.mass_function = lambda D: mD_a* np.power(D, mD_b)
+        else:
+            self.mass_function = mass_function
         
     def __call__(self, D):
         v = self.func(D)
