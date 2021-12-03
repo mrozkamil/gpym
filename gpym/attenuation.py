@@ -9,9 +9,11 @@ Created on Tue Sep 28 16:27:50 2021
 import itur.models.itu676 as itu676
 import itur.models.itu840 as itu840
 
-freqs = {'Ku': 13.6, 'Ka': 35.5, }
+from . import misc
+freqs = misc.band_usual_freq
 
-def specific_attenuation_gases(ds_env, band, ):
+
+def gases(ds_env, band, ):
     """    
 
     Parameters
@@ -36,7 +38,7 @@ def specific_attenuation_gases(ds_env, band, ):
     return itu676.gamma_exact(fs, P=P, rho=rho_air, T=T)
    
    
-def specific_attenuation_cloud(ds_env, band):
+def liquid_cloud(ds_env, band):
     """    
 
     Parameters
