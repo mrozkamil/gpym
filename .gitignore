@@ -142,3 +142,5 @@ cython_debug/
 # OSX files
 .DS_Store
 
+# large netCDF files
+*stats_Gamma.nc
