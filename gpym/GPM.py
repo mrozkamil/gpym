@@ -38,41 +38,58 @@ class DPR():
         return 10*np.log10(x)
     def _inv_dB(self,x):
         return 10**(x/10)
-    def _simulate_refl(self, flag_rain, flag_ice, 
-                       Dm_dB, PR_dB, alpha = 0.015, 
-                       range_axis = -1, dh = 0.25, band = 'Ka'):
-        
-        # Z_e = np.full(Dm_dB.size, -99.)
-        # one_way_att = np.full(Dm_dB.size, 0.)
+    def _simulate_Ze_k(self, Dm_dB, PR_dB, 
+                       flag_rain, flag_ice, k_ML = None,
+                       alpha = 0.015, band = 'Ku',):
+
+        if Dm_dB.shape == PR_dB.shape:
+            dims = ['dim%d' % dd for dd in range(len(Dm_dB.shape))] 
+            
         if type(Dm_dB)==np.ndarray:
-            Dm_dB_da = xr.DataArray(Dm_dB, dims = 'Z')
+            Dm_dB_da = xr.DataArray(Dm_dB, dims = dims)
         elif type(Dm_dB) == xr.core.dataarray.DataArray:
             Dm_dB_da = Dm_dB.copy()
         
         if type(PR_dB)==np.ndarray:
-            PR_dB_da = xr.DataArray(PR_dB, dims = 'Z')
+            PR_dB_da = xr.DataArray(PR_dB, dims = dims)
         elif type(PR_dB) == xr.core.dataarray.DataArray:
             PR_dB_da = PR_dB.copy()
             
         z_name = 'mean_Z_%s' % band
         k_name = 'mean_k_%s' % band
         
-    
-        
-        Z_e_ice = self.LUT_ice[z_name].interp(Alpha = alpha,
+
+        Ze_ice = self.LUT_ice[z_name].interp(Alpha = alpha,
             Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_ice,-99.)
-        one_way_att_ice = self.LUT_ice[k_name].interp(Alpha = alpha,
+        k_ice = self.LUT_ice[k_name].interp(Alpha = alpha,
             Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_ice, 0.)
         
         
-        Z_e_rain = self.LUT_rain[z_name].interp(
+        Ze_rain = self.LUT_rain[z_name].interp(
             Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_rain, -99.)
-        one_way_att_rain = self.LUT_rain[k_name].interp(
+        k_rain = self.LUT_rain[k_name].interp(
             Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_rain,0.)
         
-        Z_e = self._dB( self._inv_dB(Z_e_ice) + self._inv_dB(Z_e_rain))
-        one_way_att = one_way_att_ice+one_way_att_rain
+        Ze = self._dB( self._inv_dB(Ze_ice) + self._inv_dB(Ze_rain))
+        spec_att = k_ice + k_rain
+        if k_ML is not None:
+            spec_att += k_ML
+        return Ze, spec_att
+    
+    def _simulate_Zm(self, Dm_dB, PR_dB, 
+                     flag_rain, flag_ice, k_ML = None,
+                       alpha = 0.015, band = 'Ku',
+                       range_spacing = 0.25, range_dim = 'dim0',):
+        
+        Ze, spec_att = self._simulate_Ze_k(                            
+             Dm_dB = Dm_dB, PR_dB = PR_dB, 
+             flag_rain = flag_rain, flag_ice = flag_ice, 
+              k_ML = k_ML, alpha = alpha, band = band,)
+        
+        one_way_att = spec_att.cumsum(dim = range_dim)*range_spacing
+        
+        Zm = Ze - 2*one_way_att
+        return Zm
         
         
-
-        return Z_e, one_way_att
+        
