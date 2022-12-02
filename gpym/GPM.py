@@ -5,91 +5,110 @@ Created on Thu Dec  2 10:25:49 2021
 
 @author: km357
 """
-import os
 
 from . import io
 import numpy as np
+import h5py
 import xarray as xr
 
-class DPR():
-    def __init__(self, filename):
-        
-        module_path = os.path.dirname(__file__)
-       
-        self.NS = io.open_dataset(filename, subgroup = 'NS', read_attrs = True)
-        self.MS = io.open_dataset(filename, subgroup = 'MS', read_attrs = True)
-        self.HS = io.open_dataset(filename, subgroup = 'HS', read_attrs = True)
-        
-        LUT_fn = os.path.join(module_path, 'scattering', 'rain', 
-                              'PSD_integrated', 'gamma', 'mimics_insitu',
-                              'NASA_DSD_dataset_2DVD_5min_stats_Gamma.nc')
-        self.LUT_rain = xr.load_dataset(LUT_fn)
-        
-        LUT_fn = os.path.join(module_path, 'scattering', 'ice', 
-                              'PSD_integrated', 'gamma', 'mimics_insitu',
-                              'insitu_PSD_dataset_Dle_stats_Gamma.nc')
-        self.LUT_ice = xr.load_dataset(LUT_fn)
-        
-    def _restrict_NS_to_MS(self,):
-        if 'nray' in self.NS.dims:
-            self.NS = self.NS.isel(nray = np.arange(12,37))
-            self.NS  = self.NS .rename({'nray': 'nrayMS'}) 
-    def _dB(self,x):
-        return 10*np.log10(x)
-    def _inv_dB(self,x):
-        return 10**(x/10)
-    def _simulate_Ze_k(self, Dm_dB, PR_dB, 
-                       flag_rain, flag_ice, k_ML = None,
-                       alpha = 0.015, band = 'Ku',):
-
-        if Dm_dB.shape == PR_dB.shape:
-            dims = ['dim%d' % dd for dd in range(len(Dm_dB.shape))] 
-            
-        if type(Dm_dB)==np.ndarray:
-            Dm_dB_da = xr.DataArray(Dm_dB, dims = dims)
-        elif type(Dm_dB) == xr.core.dataarray.DataArray:
-            Dm_dB_da = Dm_dB.copy()
-        
-        if type(PR_dB)==np.ndarray:
-            PR_dB_da = xr.DataArray(PR_dB, dims = dims)
-        elif type(PR_dB) == xr.core.dataarray.DataArray:
-            PR_dB_da = PR_dB.copy()
-            
-        z_name = 'mean_Z_%s' % band
-        k_name = 'mean_k_%s' % band
-        
-
-        Ze_ice = self.LUT_ice[z_name].interp(Alpha = alpha,
-            Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_ice,-99.)
-        k_ice = self.LUT_ice[k_name].interp(Alpha = alpha,
-            Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_ice, 0.)
-        
-        
-        Ze_rain = self.LUT_rain[z_name].interp(
-            Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_rain, -99.)
-        k_rain = self.LUT_rain[k_name].interp(
-            Dm_dB_bin = Dm_dB_da, PR_dB_bin = PR_dB_da).where(flag_rain,0.)
-        
-        Ze = self._dB( self._inv_dB(Ze_ice) + self._inv_dB(Ze_rain))
-        spec_att = k_ice + k_rain
-        if k_ML is not None:
-            spec_att += k_ML
-        return Ze, spec_att
+class GPM():
+    def __getitem__(self, key):
+         return getattr(self,key)
+    def __setitem__(self, key, value):
+        setattr(self, key, value)
     
-    def _simulate_Zm(self, Dm_dB, PR_dB, 
-                     flag_rain, flag_ice, k_ML = None,
-                       alpha = 0.015, band = 'Ku',
-                       range_spacing = 0.25, range_dim = 'dim0',):
+    def __init__(self, filename , subgroups = None): 
+        self.swaths = []
+        self.open_dataset(filename, subgroups = subgroups)
+              
+
+    def add_subgroup(self, filename, subgroup, concat_dim = 'nscan'):
+        ### loading radar data     
+        if isinstance(filename, str):            
+            tmp_ds = io.open_dataset(
+                filename, subgroup = subgroup, read_attrs = True)           
+        if isinstance(filename, list):
+            tmp_ds = io.open_mfdataset(
+                filename, subgroup = subgroup, read_attrs = True) 
+        if not subgroup in dir(self):
+            self[subgroup] = tmp_ds
+            self.swaths.append(subgroup)
+        else:
+            self[subgroup] = xr.concat([self[subgroup], tmp_ds],
+                dim = concat_dim, combine_attrs = 'drop_conflicts')
+        tmp_cords = list(self[subgroup].coords)
+        if not ('_nscan' in tmp_cords) and ('nscan' in tmp_cords):
+            tmp_cords.append('_nscan')
+            self[subgroup]['_nscan'] = ('nscan',
+                    np.arange(self[subgroup]['nscan'].size))
+            self[subgroup] =  self[subgroup].set_coords(tmp_cords)
+            
+    def open_dataset(self, filename, subgroups=None, concat_dim = 'nscan'):
+        if isinstance(filename, str):   
+            fn = filename
+        if isinstance(filename, list):           
+            fn = filename[0]            
+        if subgroups is None:
+            f = h5py.File(fn, 'r')  
+            subgroups = []
+            for key in f.keys():
+                if isinstance(f[key], h5py.Group):
+                    subgroups.append(key)
+            f.close()              
+        for subgroup in subgroups:
+            self.add_subgroup(filename, subgroup = subgroup, 
+                              concat_dim = concat_dim) 
+            
+    def add_dataset(self, filename, subgroups=None, concat_dim = 'nscan'):
+        self.open_dataset(filename, subgroups = subgroups, 
+                          concat_dim = concat_dim)
+    
+       
         
-        Ze, spec_att = self._simulate_Ze_k(                            
-             Dm_dB = Dm_dB, PR_dB = PR_dB, 
-             flag_rain = flag_rain, flag_ice = flag_ice, 
-              k_ML = k_ML, alpha = alpha, band = band,)
+class DPR(GPM):    
+    def __init__(self, filename, subgroups = None):
+        super().__init__(filename, subgroups = subgroups)
         
-        one_way_att = spec_att.cumsum(dim = range_dim)*range_spacing
-        
-        Zm = Ze - 2*one_way_att
-        return Zm
-        
+        keys = ['MS', 'HS', 'NS', 'FS', ]
+        methods = [m_name for m_name in dir(self) 
+                   if not m_name.startswith('__')]
+        for key in keys:
+            if key not in methods:
+                continue           
+            if 'nbin' in self[key].dims:
+                var_n = 'nbin'
+                dh = 0.125
+            elif 'nbinHS' in self[key].dims:
+                var_n = 'nbinHS'
+                dh = 0.25
+            else:
+                var_n = None
+            if var_n:     
+                
+                height = (self[key][var_n].size - self[key][var_n]-1)*dh
+                # print(var_n)
+                # print(key)
+                # print(height)
+                # print(self[key]['Altitude'] )
+                self[key]['Altitude'] =  height
+                self[key]['Altitude'].attrs = {
+                    'DimensionNames': var_n,
+                     'Units': 'km',
+                     'units': 'km',
+                     'CodeMissingValue': '-9999.9'}
+                coords = list(self[key].coords)                
+                coords.append('Altitude')  
+                self[key] =  self[key].set_coords(coords)
+                self[key].attrs['range_spacing'] = dh
+                
+        ### restricting the NS data to the MS swath
+        if 'NS' in methods: 
+            self.MNS = self.NS.isel(nray = np.arange(12,37))
+            self.MNS  = self.MNS .rename({'nray': 'nrayMS'})             
+        self.swath_name = {'Ka': 'MS', 'Ku': 'MNS'}        
+
+   
+       
+      
         
         
