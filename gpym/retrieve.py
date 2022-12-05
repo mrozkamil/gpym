@@ -258,7 +258,8 @@ class OE():
     def _form_x(self, x_repr, spline_repr, lx, nx_full = 3, nx_single = 0,):
 
         #we split x_repr vector into PC representation and other parameters
-        split_list = self._split_x(x_repr, lx = lx, nx_full = nx_full, nx_single = nx_single)
+        split_list = self._split_x(x_repr, lx = lx, 
+                        nx_full = nx_full, nx_single = nx_single)
         # spline representation of principal components in the column
         pc_rep_list = [np.zeros(spline_repr.ind_node_signif.size) for ii in range(3)]
         # full vectors
@@ -729,9 +730,9 @@ class OE():
                 
                 Zm_v[band][ind_extrap] = np.polyval(
                     tmp_poly, ind_extrap)
-                weight_Z[band][ind_extrap] = 1./(.75**2)
+                weight_Z[band][ind_extrap] = 1./(.4**2) #1./(.75**2)
             else:
-                weight_Z[band][ind_extrap] = 1./(1.5**2)
+                weight_Z[band][ind_extrap] = 1./(.4**2) #1./(1.5**2)
                 Zm_v[band][ind_extrap] = np.mean(Zm_v[band][ind_extrap_input])
             # weight_PIA[band] *= 1+np.sum(weight_Z[band]>3)
         weight_Z['Ku'][Zm_v['Ku']<12] = 0.
@@ -871,7 +872,7 @@ class OE():
 
         T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w) # measures deviation from a constant value 
         T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*9.  # measures deviation from a linear change 
-        weight_Tikhonov = (T1_mat + T2_mat)*1.
+        weight_Tikhonov = (T1_mat + T2_mat)*0.
 
         # Tikhonov_matrix = np.zeros((3*nx + 3, 3*nx + 3))
         
