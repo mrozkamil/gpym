@@ -473,12 +473,12 @@ class OE():
             att_std = y_dict['k'][band]*1.
             for hydro in fl_hydro.keys():
                 att_std[fl_hydro[hydro]] *= self.k_fract_unc[hydro][band]
-            int_att_var[band] = np.cumsum(att_std**2)*self.DPR_res
+            int_att_var[band] = np.cumsum(att_std**2)*self.DPR_res*0.
             var_Zm[band] = 1/R_m_inv[ib*nx:(ib+1)*nx] + int_att_var[band]
 
         # cost function of the measurements
         y = self._form_y_vect(Zm = y_dict['Zm'], Ze = y_dict['Ze'], 
-                dPIA = y_dict['pia']['Ka'] - y_dict['pia']['Ka'])
+                dPIA = y_dict['pia']['Ka'] - y_dict['pia']['Ku'])
 
         # the attenuation uncertainty must be added to the error covariance matrix
         R_att = np.concatenate([int_att_var[band] for band in self.bands])
@@ -561,9 +561,10 @@ class OE():
         #### read differential pia estimate
         delta_PIA = 5*col_ds['Ku'].PIAhybrid.values.item()
         std_delta_PIA = 5*col_ds['Ku'].stddevHY.values.item()
-        weight_delta_PIA = 1./std_delta_PIA**2.
+        weight_delta_PIA = 1./std_delta_PIA**2.*1e4
         if not np.isfinite(delta_PIA+weight_delta_PIA):
             delta_PIA = 0.
+            print('delta PIA unreliable')
             weight_delta_PIA = 0.
             
         #### partitioning data to rain, melting and ice
@@ -663,7 +664,8 @@ class OE():
                  
         # k_per_bin = {band: np.diff(att_corr[band], prepend = 0.) for band in bands}
         
-        pc0_fg = self._fg_pc0( Ze_v = Ze_v, flag_hydro = flag_hydro)
+        pc0_fg = self._fg_pc0( Ze_v = {band: Ze_v[band]+self.WC_db_ap_press_corr 
+                for band in bands}, flag_hydro = flag_hydro)
         pc0_fg = np.maximum(-10., pc0_fg)
         pc0_fg_rep = spline_repr.get_rep(fine_nodes, 
                             pc0_fg[flag_any_hydro])
@@ -676,9 +678,8 @@ class OE():
 
 
         BB_ext_dB_HB = misc.dB(np.array(
-            [att_corr[band][flag_hydro['melt']][-1] - 
-             att_corr[band][flag_hydro['melt']][0]
-                        for band in bands]))
+            [att_corr[band][flag_hydro['rain']][0] - 
+            att_corr[band][flag_hydro['ice']][-1] for band in bands]))
         BB_ext_dB_ap = np.array([BB_ext_dB_HB[1]-6. , 6.,])        
                 
         BB_ext_dB_var = np.array([2.**2, 3**2]) #fractional uncertainty
@@ -768,7 +769,7 @@ class OE():
 
         T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w) # measures deviation from a constant value 
         T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*4.  # measures deviation from a linear change 
-        weight_Tikhonov = (T1_mat + T2_mat)*4.
+        weight_Tikhonov = (T1_mat + T2_mat)*81.
 
         # Tikhonov_matrix = np.zeros((3*nx + 3, 3*nx + 3))
         
@@ -797,7 +798,8 @@ class OE():
         Ze = {band: Ze_v[band][flag_any_hydro] for band in self.bands}
         y_m = self._form_y_vect(Zm = Zm, Ze = Ze, dPIA = delta_PIA)
 
-        R_m_inv = self._form_y_vect(Zm = weight_Ze_model, Ze = weight_Ze, dPIA = weight_delta_PIA)
+        R_m_inv = self._form_y_vect(Zm = weight_Ze_model, Ze = weight_Ze, 
+                    dPIA = weight_delta_PIA)
 
         args = (x_ap, R_ap_inv,
                 y_m, R_m_inv, T_K,
@@ -850,7 +852,7 @@ class OE():
 
 
         bounds = [(-8., 8.) for ii in range(lx*nx_full+nx_single)]
-        bounds += [(-18.,-3.), (-2.,10.), (5., 17.)]
+        bounds += [(-18.,-3.), (-20.,10.), (3., 12.)]
 
         for jj in range(x_rep_fg.size):
             if x_rep_fg[jj]< bounds[jj][0]:
@@ -861,10 +863,20 @@ class OE():
         starttime = timeit.default_timer()  
 
         options={'maxiter': maxiter, 'disp': True,  'ftol': 5e-03, } 
-        
+        # iter = []
+        # def callback(x_repr):
+        #     x = self._form_x_vect(x_repr, 
+        #         spline_repr, lx = lx, nx_full = nx_full, nx_single = nx_single)
+        #     nx = spline_repr.fine_nodes.size
+
+        #     x_dict = self._form_x_dict(x, nx, flag_any_hydro, )
+        #     y_dict = self._form_y_dict(x_dict, Alpha_dB_base, flag_any_hydro, T_K, fl_hydro)
+        #     iter.append(y_dict['pia']['Ka'] - y_dict['pia']['Ku'])
+        #     plt.figure(99)
+        #     plt.plot(len(iter), iter[-1])
 
         res = minimize(self._CF_1D, x0 = x_rep_fg, method = method, 
-            options=options,  args = args,  bounds = bounds)
+            options=options,  args = args,  bounds = bounds, )
         
 
 
@@ -898,8 +910,12 @@ class OE():
                         x1 = zm_plot - zm_std, x2 = zm_plot + zm_std,
                         color = 'C%d' % ib, alpha = 0.3 )
                 zm_plot = out_y['Zm'][band]*1.
+                zm_plot[fl_hydro['melt']] = np.nan                
+                plt.plot(zm_plot,alt_v, '--', color = 'C%d' % ib) 
+                zm_plot = out_y['Ze'][band]*1.
                 zm_plot[fl_hydro['melt']] = np.nan
-                plt.plot(zm_plot,alt_v, '--', color = 'C%d' % ib)  
+                plt.plot(zm_plot,alt_v, ':', color = 'C%d' % ib)
+
             plt.grid()
             plt.ylim(0, 10,)
             plt.xlim(14,46)
