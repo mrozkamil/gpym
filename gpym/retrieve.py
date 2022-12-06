@@ -658,9 +658,6 @@ class OE():
         for band in bands:
             var_Ze[band] += (std_PIA[band]**2 + var_bottom_up[band])
 
-
-            
-            
         weight_Ze = {band: np.maximum(0,1./var_Ze[band][flag_any_hydro]) for band in bands}
 
                  
@@ -770,8 +767,8 @@ class OE():
             np.arange(l_melt), [0,l_melt], [1., w_max] )
 
         T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w) # measures deviation from a constant value 
-        T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*9.  # measures deviation from a linear change 
-        weight_Tikhonov = (T1_mat + T2_mat)*0.
+        T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*4.  # measures deviation from a linear change 
+        weight_Tikhonov = (T1_mat + T2_mat)*4.
 
         # Tikhonov_matrix = np.zeros((3*nx + 3, 3*nx + 3))
         
@@ -811,15 +808,7 @@ class OE():
 
 
         CF_x0 = self._CF_1D(x_rep_fg,  *args) 
-
-        # CF_x0 = self._CF_1D(
-        #         x_rep_fg,  x_ap = x_ap, R_ap_inv = R_ap_inv,
-        #         y_m = y_m, R_m_inv = R_m_inv, T_K = T_K,
-        #         weight_Tikhonov = weight_Tikhonov, 
-        #         fl_hydro = fl_hydro, flag_any_hydro= flag_any_hydro, lx = lx,
-        #         spline_repr = spline_repr, Alpha_dB_base = Alpha_dB_base, 
-        #         nx_full = nx_full, nx_single = nx_single, 
-        #         return_x = False, return_y = False, )
+        # print(x_ap.shape)
 
         ret_shape = dpr_obj.MS.Longitude.shape
         for ii in range(-1,2):
@@ -854,7 +843,7 @@ class OE():
                             print('CF: %.1f -> %.1f x0 updated' % (CF_x0, CF_xp) )
                             x_rep_fg = 1.*x_prev
                             CF_x0 = 1.*CF_xp
-                            
+                            # print(x_rep_fg.shape)
 
         # method = 'Powell'
         # method = 'SLSQP'
@@ -883,7 +872,10 @@ class OE():
         print("%1.1fs" % ( time_meth, ))
                         
         
-        out_x = self._form_x_dict(res.x, nx, flag_any_hydro, )
+        
+        x = self._form_x_vect(x_repr = res.x, spline_repr = spline_repr,
+            lx = lx, nx_full = nx_full, nx_single = nx_single)
+        out_x = self._form_x_dict(x, nx, flag_any_hydro, )
         out_y = self._form_y_dict(out_x, Alpha_dB_base, flag_any_hydro, T_K, fl_hydro)
        
         
@@ -896,14 +888,14 @@ class OE():
             Dm_dB = out_x['Dm_dB'])
         
         if make_plot:            
-            save_str = 'SRT_backward'            
+            save_str = 'SRT_backward'
             plt.figure()
             for ib, band in enumerate(bands):     
-                zm_plot = Zm_v[band][flag_any_hydro]*1.            
+                zm_plot = Zm_v[band][flag_any_hydro]*1.      
+                zm_std = std_Zm[band][flag_any_hydro] 
                 plt.plot(zm_plot, alt_v, '-', color = 'C%d' % ib)
                 plt.fill_betweenx(y = alt_v,
-                        x1 = zm_plot - np.sqrt(out_y['var_Zm'][band] ),
-                        x2 = zm_plot + np.sqrt(out_y['var_Zm'][band] ),
+                        x1 = zm_plot - zm_std, x2 = zm_plot + zm_std,
                         color = 'C%d' % ib, alpha = 0.3 )
                 zm_plot = out_y['Zm'][band]*1.
                 zm_plot[fl_hydro['melt']] = np.nan
