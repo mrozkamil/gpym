@@ -20,7 +20,7 @@ from . import misc
 from . import simulate
 import timeit
 
-module_path = '/Users/km357/Documents/Python3/gpym/gpym'
+module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
 # module_path = os.path.dirname(__file__)
 
 radar_sim = simulate.radar_simulator()

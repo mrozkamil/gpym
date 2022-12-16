@@ -17,7 +17,7 @@ from . import misc
 
 
 
-module_path = '/Users/km357/Documents/Python3/gpym/gpym'
+module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
 module_path = os.path.dirname(__file__)
 
         
