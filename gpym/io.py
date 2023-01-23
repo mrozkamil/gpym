@@ -3,7 +3,7 @@
 """
 Created on Fri Feb  5 11:17:24 2021
 
-@author: km357
+@author: kamil.mroz@le.ac.uk
 """
 # import os, re
 # from pandas import to_datetime 
@@ -12,22 +12,25 @@ import xarray as xr
 # import numpy as np
 xr.set_options(display_style="html")
                  
-def _rename_dims(dset, dim_set, ):
+def _rename_dims(dset, ):
     for var_n in dset.variables:
         if 'DimensionNames' in dset[var_n].attrs.keys():
             dim_names_new = dset[var_n].attrs['DimensionNames'].replace(
                 ' ','').split(',')
-            dim_names_old = list(dset[var_n].dims)            
-            for dim_n_old, dim_n_new in zip(dim_names_old, dim_names_new):                
-                if dim_n_old != dim_n_new:                    
-                    if not (dim_n_old in dim_set):
-                        dset = dset.rename({dim_n_old: dim_n_new})                                                
-                    else:                        
-                        dset[var_n] = dset[var_n].rename({dim_n_old: dim_n_new}) 
-                        # print('{}: old_dim: {}, new_dim {}'.format(
-                        #     var_n, dim_n_old, dim_n_new ))                        
-                    dim_set.add(dim_n_new)   
-    return dset          
+            dim_names_old = list(dset[var_n].dims) 
+            # check if a list of dims has no repeated entry
+            dim_names_old_set = set(dim_names_old)
+            if len(dim_names_old_set)==len(dim_names_old):
+                swap_dict = {dim_n_old : dim_n_new 
+                    for dim_n_old, dim_n_new in zip(dim_names_old, dim_names_new)
+                    if dim_n_old != dim_n_new}
+                dset[var_n] = dset[var_n].rename(swap_dict)
+            else:
+                # print('%s has repeated dim, loaded to memory...' % var_n)
+                tmp_data = dset[var_n].data
+                dset[var_n] = (dim_names_new, tmp_data)
+
+    return dset
 
 def open_dataset(filename, subgroup = 'NS', read_attrs = True):          
    
@@ -52,18 +55,19 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True):
                             v = float(v)
                         attrs[k] = v           
     
-    all_dims = set()
+   
     if subgroup in list(ncf.groups.keys()):
         nch = ncf.groups.get(subgroup)
-        dset0 = xr.open_dataset(xr.backends.NetCDF4DataStore(nch))         
-        dset0 = _rename_dims(dset0, all_dims, )
+        dset0 = xr.open_dataset(xr.backends.NetCDF4DataStore(nch))        
+        
+        dset0 = _rename_dims(dset0,  )
                           
         for subsubgroup in nch.groups.keys():    
             ncg = nch.groups.get(subsubgroup)
             dset1 = xr.open_dataset(xr.backends.NetCDF4DataStore(ncg), 
                                     decode_timedelta = False,)  
-            dset1 = _rename_dims(dset1, all_dims, )
-            
+           
+            dset1 = _rename_dims(dset1,  )
             if subsubgroup == 'ScanTime':
                 
                 time_vars = ('Year', 'Month', 'DayOfMonth',
