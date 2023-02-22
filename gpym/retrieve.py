@@ -67,7 +67,7 @@ class OE():
             [[1, 0, 0], 
              [0,1,-1.4525519586],
              [0,0,1]])
-        self.shift_vect['phys']['Will'] = np.array([[0, 5.102, 0],]).T
+        self.shift_vect['phys']['Will'] = np.array([[0., 5.102, 0.],]).T
         
         self.base_change_mat['PCA']['Will'] = np.matmul(
             self.base_change_mat['phys']['Will'],
@@ -561,7 +561,7 @@ class OE():
         #### read differential pia estimate
         delta_PIA = 5*col_ds['Ku'].PIAhybrid.values.item()
         std_delta_PIA = 5*col_ds['Ku'].stddevHY.values.item()
-        weight_delta_PIA = 1./std_delta_PIA**2.*1e4
+        weight_delta_PIA = 1./std_delta_PIA**2
         if not np.isfinite(delta_PIA+weight_delta_PIA):
             delta_PIA = 0.
             print('delta PIA unreliable')
@@ -799,7 +799,7 @@ class OE():
         y_m = self._form_y_vect(Zm = Zm, Ze = Ze, dPIA = delta_PIA)
 
         R_m_inv = self._form_y_vect(Zm = weight_Ze_model, Ze = weight_Ze, 
-                    dPIA = weight_delta_PIA)
+                    dPIA = weight_delta_PIA*np.sum(weight_Ze_model['Ku']/4))
 
         args = (x_ap, R_ap_inv,
                 y_m, R_m_inv, T_K,

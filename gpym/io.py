@@ -12,7 +12,8 @@ import xarray as xr
 # import numpy as np
 xr.set_options(display_style="html")
                  
-def _rename_dims(dset, ):
+def _rename_dims(dset, consistency_test = False):
+    vars_to_drop = []
     for var_n in dset.variables:
         if 'DimensionNames' in dset[var_n].attrs.keys():
             dim_names_new = dset[var_n].attrs['DimensionNames'].replace(
@@ -26,17 +27,20 @@ def _rename_dims(dset, ):
                     if dim_n_old != dim_n_new}
                 dset[var_n] = dset[var_n].rename(swap_dict)
             else:
-                # print('%s has repeated dim, loaded to memory...' % var_n)
-                tmp_data = dset[var_n].data
-                dset[var_n] = (dim_names_new, tmp_data)
-
+                if consistency_test:
+                    # print('%s has repeated dim, loaded to memory...' % var_n)
+                    tmp_data = dset[var_n].data
+                    dset[var_n] = (dim_names_new, tmp_data)
+                else:
+                    vars_to_drop.append(var_n)
+    dset = dset.drop(vars_to_drop)
     return dset
 
-def open_dataset(filename, subgroup = 'NS', read_attrs = True):          
+def open_dataset(filename, subgroup = 'NS', read_attrs = True, consistency_test = False):          
    
     # height = 0.125*(175 - np.arange(176))  
               
-    ncf = netCDF4.Dataset(filename, diskless=True, persist=False, mode='r')  
+    ncf = netCDF4.Dataset(filename, diskless=True, persist=False, mode='r')   # type: ignore 
     attrs = {}   
     if read_attrs:         
         attr_list = ['FileHeader', 'FileInfo', 'InputRecord', 'JAXAInfo',
@@ -58,16 +62,16 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True):
    
     if subgroup in list(ncf.groups.keys()):
         nch = ncf.groups.get(subgroup)
-        dset0 = xr.open_dataset(xr.backends.NetCDF4DataStore(nch))        
-        
-        dset0 = _rename_dims(dset0,  )
+        dset0 = xr.open_dataset(xr.backends.NetCDF4DataStore(nch))    # type: ignore        
+        dset0 = _rename_dims(dset0,  consistency_test = consistency_test)
                           
-        for subsubgroup in nch.groups.keys():    
+        for subsubgroup in nch.groups.keys():  
+            # print(subsubgroup)
             ncg = nch.groups.get(subsubgroup)
             dset1 = xr.open_dataset(xr.backends.NetCDF4DataStore(ncg), 
-                                    decode_timedelta = False,)  
+                        decode_timedelta = False,)  # type: ignore
            
-            dset1 = _rename_dims(dset1,  )
+            dset1 = _rename_dims(dset1,  consistency_test = consistency_test)
             if subsubgroup == 'ScanTime':
                 
                 time_vars = ('Year', 'Month', 'DayOfMonth',
@@ -118,5 +122,5 @@ def open_mfdataset(file_list, subgroup = 'NS', read_attrs = True,
                              read_attrs = read_attrs))
         dset = xr.concat(dsets, dim = dim, 
                          combine_attrs = 'drop_conflicts')
-    return dset
+        return dset
 

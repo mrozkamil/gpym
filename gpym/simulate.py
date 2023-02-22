@@ -13,10 +13,6 @@ from scipy.signal import savgol_filter
 import numpy as np
 from . import misc
 
-
-
-
-
 module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
 module_path = os.path.dirname(__file__)
 
