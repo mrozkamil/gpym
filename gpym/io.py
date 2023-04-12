@@ -100,9 +100,11 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True, consistency_test 
                         var_n_mod = '{}_{}'.format(var_n, subsubgroup)                        
                         dset1 = dset1.rename({var_n: var_n_mod})                        
                 dset0 = xr.merge([dset0, dset1])
+        coords = []
+        for tmp_name in ['Longitude', 'Latitude', 'time']:
+            if tmp_name in dset0.variables:
+                coords.append(tmp_name)
                 
-        coords = ['Longitude', 'Latitude', 'time']
-        
          
         dset0 = dset0.set_coords(coords)   
         dset0.attrs = attrs    

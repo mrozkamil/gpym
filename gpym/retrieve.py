@@ -12,77 +12,138 @@ from scipy.optimize import minimize
 from scipy.integrate import cumtrapz
 from scipy.linalg import sqrtm
 from scipy.signal import savgol_filter
+from scipy.interpolate import CubicHermiteSpline as CHS
 from scipy.spatial import cKDTree
 from scipy.special import expit
 
 from scipy.interpolate import RegularGridInterpolator as RGI
 import matplotlib.pyplot as plt
-# import dill
+import dill
+import timeit
+from sklearn.covariance import MinCovDet
+
+
 from . import misc
 from . import simulate
 from . import representation 
-import timeit
 
-module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
+
+home = os.path.expanduser("~")
 module_path = os.path.dirname(__file__)
-home = os.path.expanduser('~')
+"""
+
+import sys
+sys.path.append(os.path.join(home, 'Scripts','Python3', 'gpym'))
+
+from gpym import simulate, misc, representation
+from gpym.retrieve import OE
+self = OE()
+module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
+"""
+
+class ScaledPCA:
+    def __init__(self, n_components = None, dsd_stat_fn = None):
+        self.n_components = n_components
+        if dsd_stat_fn:
+            with open(dsd_stat_fn , 'rb') as f:                
+                self.robust_cov=dill.load(f)
+            self._calc_params()
+        else:
+            self.robust_cov = None       
+            self.components_ = None
+            self.mean_ = None
+            self.std_ = None
+            self.components_ = None
+            self.explained_variance_ = None
+        
+    def fit(self, X):
+        # fit a MCD robust estimator to data
+        self.robust_cov = MinCovDet().fit(X)        
+        self._calc_params()
+        
+    def _calc_params(self,):
+        # number of PCA components
+        if self.n_components is None:
+            self.n_components = self.robust_cov.covariance_.shape[0] # type: ignore
+        # calculate the mean and covariance matrix
+        self.mean_ = self.robust_cov.location_ # type: ignore
+
+        # data normalization
+        self.std_ = np.sqrt(np.diag(self.robust_cov.covariance_)) # type: ignore
+
+        # covariance matrix of scaled data
+        cov_matrix = self.robust_cov.covariance_/(self.std_*self.std_[:,np.newaxis]) # type: ignore
+        # calculate the eigenvectors and eigenvalues of the covariance matrix        
+        eig_vals, eig_vect = np.linalg.eig(cov_matrix) 
+         # sort the eigenvectors in descending order of eigenvalues
+        idx = np.argsort(eig_vals)[::-1][:self.n_components] # type: ignore
+        self.components_ = eig_vect[:, idx] # type: ignore
+        self.explained_variance_ = eig_vals[idx] 
+        
+    def transform(self, X):
+        # center the data
+        X_centered = X - self.mean_
+        # normalize input
+        X_centered *= 1./self.std_ # type: ignore        
+        # project onto the principal components
+        X_transformed = np.matmul(X_centered, self.components_) # type: ignore
+        
+        return X_transformed
+    
+    def inverse_transform(self, X_transformed):
+        # project back to the original space
+        X_original = np.matmul(X_transformed, self.components_.T)
+        # account for normalization
+        X_original *= self.std_        
+        # add back the mean of the training data
+        X_original = X_original + self.mean_        
+        return X_original
+    
+class basis_repr():
+    """
+    basis_elements is a matrix whose columns are vector basis elements, they dont need to be orthogonal 
+    """
+    def __init__(self, basis_elements,):
+
+        self.basis = basis_elements
+        XTX = np.matmul(basis_elements.T, basis_elements)
+        self.proj_mat = np.linalg.solve(XTX,basis_elements.T)
+        self.proj_mat_T = self.proj_mat.T
+
+    def transform(self,X):
+        X_transformed = np.matmul(X, self.proj_mat_T) # type: ignore        
+        return X_transformed
+    def inverse_transform(self,X_transformed):
+        # project back to the original space
+        X_original = np.matmul(X_transformed, self.basis.T)
+        return X_original
 
 class OE():
     def __init__(self, filename = None, ):
         
-        # each radar bin is represented by 3 unknowns in a form of a column vector
+        
+        self.DPR_res = 0.125 #km
         self.radar_sim = simulate.radar_simulator(get_derivatives = True)
         self.bands = ['Ku', 'Ka',]
         
+        # each radar bin is represented by 3 unknowns in a form of a column vector
         # physical variables are 
-        # 10log10 WC [g/m3]
+        # 10log10 PR [g/m3]
         # 10log10 sigma_m (PSD width) [mm]
         # 10log10 D_m [mm]
-        self.phys_vars = ['WC_dB', 'Sm_dB', 'Dm_dB']
+        self.phys_vars = ['PR_dB', 'Sm_dB', 'Dm_dB']
         
         # Williams variables are 
-        # 10log10 WC [g/m3]
+        # 10log10 PR [mm/h]
         # 10log10 sigma_m prime (PSD width) [mm] (it removes a correlation between Sigma_m and D_m)
         # 10log10 D_m [mm]
-        self.Williams_vars = ['WC_dB', 'Sm_p_dB', 'Dm_dB']
+        self.Williams_vars = ['PR_dB', 'Sm_p_dB', 'Dm_dB']
         
+        dsd_stat_fn = os.path.join(module_path, 'dsd_stats', 
+                    'NASA_DSD_dataset_all_5min_MinCovDet_analysis_var_scaled.pkl')
+        self.ScaledPCA = ScaledPCA(dsd_stat_fn = dsd_stat_fn)
         
-        self.base_change_mat = {b1:{} for b1 in ['PCA', 'phys', 'Will']}
-        self.shift_vect = {b1:{} for b1 in ['PCA', 'phys', 'Will']}
-        
-        # columns of the array are the principal components
-        self.base_change_mat['PCA']['phys'] = np.array(
-            [[ 0.73479976,  0.55868832,  0.38462536],
-             [-0.67753545,  0.63120603,  0.37752439],
-            [ 0.03185939,  0.53800215, -0.84234118]]).T
-        
-        # mean values of the physical parameters 
-        # 'WC_dB', 'Sm_dB', 'Dm_dB'
-        self.shift_vect['PCA']['phys'] = np.array(
-            [[-9.35146661, -3.79017189,  0.90294262],]).T
-            
-        # new variable sigma_m prime defined as
-        # Sm_p_dB = Sm_dB - (1.4525519586 * Dm_dB - 5.102)
-        self.base_change_mat['phys']['Will'] = np.array(
-            [[1, 0, 0], 
-             [0,1,-1.4525519586],
-             [0,0,1]])
-        self.shift_vect['phys']['Will'] = np.array([[0., 5.102, 0.],]).T
-        
-        self.base_change_mat['PCA']['Will'] = np.matmul(
-            self.base_change_mat['phys']['Will'],
-            self.base_change_mat['PCA']['phys'],)
-        
-        self.shift_vect['PCA']['Will'] = np.matmul(
-            self.base_change_mat['phys']['Will'],
-            self.shift_vect['PCA']['phys']
-            ) + self.shift_vect['phys']['Will'] 
-   
-        # PC variance (the first element has an increased variance 
-        # to account for deficienties in the in-situ measurements)
-        self._pca_variance = np.array(
-            [12.2340293442*100, 5.14467090, 0.175293022])
-
+        """
         # our scattering tables are generated assuming a constant mass flux, 
         # and that the velocity of particles was calculated at 1013hPa. 
         # this implies that the forward model need a pressure/velocity correction for 
@@ -116,27 +177,34 @@ class OE():
         # plt.grid()
         self.WC_db_ap_press_corr = misc.dB((sim_press/P0)**0.4)
 
-
-        pc0_table = ((np.linspace(-7, 7 , 101) - 
-                      self.shift_vect['PCA']['phys'][2])/
-                    self.base_change_mat['PCA']['phys'][2,0])
-        
+        """
+      
+        n_points = 101
+        pc0_table = np.linspace(-5, 5 , n_points)
         pc_arr = np.stack([pc0_table, 
-                np.zeros_like(pc0_table), 
-                np.zeros_like(pc0_table)], axis = 0)
+                np.zeros(n_points), 
+                np.zeros(n_points)], axis = 1)
 
-        phys_arr = self._transform_bases(pc_arr, 
-                            base1 = 'PCA', base2 = 'phys')
-        Will_arr = self._transform_bases(phys_arr, 
-                            base1 = 'phys', base2 = 'Will')
+        phys_arr = self.ScaledPCA.inverse_transform(pc_arr)
+        sm_p_tmp = self._transform_Sm_dB_Dm_dB_2_Sm_p_dB(Sm_dB = phys_arr[:,1], Dm_dB = phys_arr[:,2])
+        Will_arr = phys_arr.copy()
+        Will_arr[:,1] = sm_p_tmp 
+
+        # plt.figure()
+        # plt.plot(phys_arr[:,0], phys_arr[:,2], label = 'Dm_dB')
+        # plt.plot(phys_arr[:,0], phys_arr[:,1], label = 'Sm_dB')
+        # plt.legend()
+        # plt.grid()
+        # plt.xlabel('PR_dB')
+                           
         Z_table = {}
         for hydro in ['rain', 'ice']:
             Z_table[hydro] = {}
             for band in ['Ku','Ka']:
                 Z_table[hydro][band] = self.radar_sim(
                     hydro = hydro, var = 'Z', band = band, 
-                    WC_dB = Will_arr[0,:], Sm_p_dB = Will_arr[1,:], 
-                    Dm_dB = Will_arr[2,:])
+                    PR_dB = Will_arr[:,0], Sm_p_dB = Will_arr[:,1], 
+                    Dm_dB = Will_arr[:,2])
         
         self.KDTree = {}
         for hydro in ['rain', 'ice']:
@@ -180,6 +248,7 @@ class OE():
         # self.spl_repr = representation.spline(fine_nodes = fine_nodes,
         #             coarse_nodes = coarse_nodes,
         #             deg = deg, make_plot=True)
+
     
     def _Tikhonov_matrix(self, n, diff = 2, w = None):
         A = np.eye(n)- np.eye(n,k=1)
@@ -192,18 +261,12 @@ class OE():
             return np.matmul(Ap.T,np.matmul(W, Ap))
     
     def _transform_Sm_dB_Dm_dB_2_Sm_p_dB(self, Sm_dB, Dm_dB):
-        Sm_p_dB = Sm_dB - (1.4525519586 * Dm_dB - 5.102)
+        Sm_p_dB = Sm_dB - (1.6 * Dm_dB - 5.)
         return Sm_p_dB
     def _transform_Sm_p_dB_Dm_dB_2_Sm_dB(self, Sm_p_dB, Dm_dB):
-        Sm_dB = Sm_p_dB + (1.4525519586 * Dm_dB - 5.102)  
-        return Sm_dB
-    
-    def _transform_bases(self, data, base1='PCA', base2='phys'):
-        new_data = np.matmul(self.base_change_mat[base1][base2], 
-                data) + self.shift_vect[base1][base2]
-        return new_data
-    
-    
+        Sm_dB = Sm_p_dB + (1.6 * Dm_dB - 5.)  
+        return Sm_dB    
+   
     def HB_correction(self, ZdB_m,  flag_hydro, PIA_dB, band = 'Ku', 
                       dh_km = 0.125):
         """
@@ -238,7 +301,7 @@ class OE():
         ZdB_corr = ZdB_m + correction
         return ZdB_corr
                           
-    
+    """
     def _split_x(self, x, lx, nx_full = 3, nx_single = 0) -> list:
         """
         pc0, pc1, pc2, Alpha ice, BB_ext
@@ -284,15 +347,16 @@ class OE():
         # we get Williams' coordinates that are needed for simulations
         Will_arr = self._transform_bases(PC_arr, 
                             base1 = 'PCA', base2 = 'Will')
-        Will_arr[0,:] += self.WC_db_ap_press_corr[flag_any_hydro]  #pressure dependent expected value of WC_dB for a given value of Dm_dB
+        # Will_arr[0,:] += self.WC_db_ap_press_corr[flag_any_hydro]  #pressure dependent expected value of WC_dB for a given value of Dm_dB
         # Williams coordinates are returned if queried
         
-        x_dict = dict(WC_dB = Will_arr[0,:], Sm_p_dB = Will_arr[1,:], 
+        x_dict = dict(PR_dB = Will_arr[0,:], Sm_p_dB = Will_arr[1,:], 
                     Dm_dB = Will_arr[2,:], Alpha_dB = Alpha_dB_bb_top,
                     BB_ext  =  {'Ku': misc.inv_dB(BB_ext_dB[0]),
                                 'Ka': misc.inv_dB(BB_ext_dB[1]),},
                     PCs  = PC_arr )
         return x_dict
+    """
 
     def _form_y_vect(self, Zm, Ze, dPIA, ) -> np.ndarray:
         Zm_v = np.concatenate([Zm[band] for band in self.bands])
@@ -305,7 +369,7 @@ class OE():
         Zatt_s, pia_s, Ze_s, k_s, int_att_var  = {}, {}, {}, {}, {}
         for ib, band in enumerate(self.bands):
             Zatt_s[band], pia_s[band], Ze_s[band], k_s[band] = self._Forw_model(
-                WC_dB = x_dict['WC_dB'], Sm_p_dB = x_dict['Sm_p_dB'], 
+                PR_dB = x_dict['PR_dB'], Sm_p_dB = x_dict['Sm_p_dB'], 
                 Dm_dB= x_dict['Dm_dB'],
                 T_K=T_K[flag_any_hydro], Alpha_dB=Alpha_dB, 
                 BB_att_1_way = x_dict['BB_ext'][band]*0.5, 
@@ -348,7 +412,7 @@ class OE():
 
         return pc_val
         
-    def _Forw_model(self, WC_dB, Sm_p_dB, Dm_dB, T_K, Alpha_dB, BB_att_1_way, 
+    def _Forw_model(self, PR_dB, Sm_p_dB, Dm_dB, T_K, Alpha_dB, BB_att_1_way, 
                     flag_hydro, band = 'Ku', range_spacing = 0.125):
         
         size_z = flag_hydro[list(flag_hydro.keys())[0]].shape
@@ -359,7 +423,7 @@ class OE():
         for hydro in simulated_hydros:
                 Z_tmp = self.radar_sim(
                     hydro = hydro, var = 'Z', band = band, 
-                    WC_dB = WC_dB[flag_hydro[hydro]], 
+                    PR_dB = PR_dB[flag_hydro[hydro]], 
                     Sm_p_dB = Sm_p_dB[flag_hydro[hydro]], 
                     Dm_dB = Dm_dB[flag_hydro[hydro]],
                     T = T_K[flag_hydro[hydro]],
@@ -367,7 +431,7 @@ class OE():
             
                 k_tmp = self.radar_sim(
                     hydro = hydro, var = 'k', band = band, 
-                    WC_dB = WC_dB[flag_hydro[hydro]], 
+                    PR_dB = PR_dB[flag_hydro[hydro]], 
                     Sm_p_dB = Sm_p_dB[flag_hydro[hydro]], 
                     Dm_dB = Dm_dB[flag_hydro[hydro]],
                     T = T_K[flag_hydro[hydro]],
@@ -386,10 +450,10 @@ class OE():
         Zm[1:] += -2.*one_way_att[:-1]
         return Zm, one_way_att[-1]*2, Ze , k
         
-    def _dForw_model(self, WC_dB, Sm_p_dB, Dm_dB, T_K, Alpha_dB, 
+    def _dForw_model(self, PR_dB, Sm_p_dB, Dm_dB, T_K, Alpha_dB, 
                     flag_hydro, x = 'Dm_dB', band = 'Ku', 
                     range_spacing = 0.125):
-        # x in ['WC_dB', 'Dm_dB', 'Sm_p_dB', 'Alpha_dB']
+        # x in ['PR_dB', 'Dm_dB', 'Sm_p_dB', 'Alpha_dB']
         size_z = flag_hydro[list(flag_hydro.keys())[0]].size
         Jac_Ze = np.zeros(size_z, )
         Jac_k = np.zeros(size_z, )
@@ -406,7 +470,7 @@ class OE():
                 der_name = 'd_Z_d_%s' % x
                 dZ_tmp = self.radar_sim(
                     hydro = hydro, var = der_name, band = band, 
-                    WC_dB = WC_dB[flag_hydro[hydro]], 
+                    PR_dB = PR_dB[flag_hydro[hydro]], 
                     Sm_p_dB = Sm_p_dB[flag_hydro[hydro]], 
                     Dm_dB = Dm_dB[flag_hydro[hydro]],
                     T = T_K[flag_hydro[hydro]],
@@ -414,7 +478,7 @@ class OE():
                 der_name = 'd_k_d_%s' % x
                 dk_tmp = self.radar_sim(
                     hydro = hydro, var = der_name, band = band, 
-                    WC_dB = WC_dB[flag_hydro[hydro]], 
+                    PR_dB = PR_dB[flag_hydro[hydro]], 
                     Sm_p_dB = Sm_p_dB[flag_hydro[hydro]], 
                     Dm_dB = Dm_dB[flag_hydro[hydro]],
                     T = T_K[flag_hydro[hydro]],
@@ -422,16 +486,16 @@ class OE():
                 Jac_Ze[flag_hydro[hydro]] = dZ_tmp
                 Jac_k[flag_hydro[hydro]] = dk_tmp
 
-        elif x=='WC_dB':
+        elif x=='PR_dB':
             size_x = size_z*1
 
             for hydro in simulated_hydros:
                 dZ_tmp = np.ones((flag_hydro[hydro].sum()))
-                WC = 10**(0.1*WC_dB[flag_hydro[hydro]])
+                PR = 10**(0.1*PR_dB[flag_hydro[hydro]])
                 
                 k_tmp = self.radar_sim(
                     hydro = hydro, var = 'k', band = band, 
-                    WC_dB = WC_dB[flag_hydro[hydro]], 
+                    PR_dB = PR_dB[flag_hydro[hydro]], 
                     Sm_p_dB = Sm_p_dB[flag_hydro[hydro]], 
                     Dm_dB = Dm_dB[flag_hydro[hydro]],
                     T = T_K[flag_hydro[hydro]],
@@ -449,8 +513,8 @@ class OE():
                 x_repr,  x_ap, R_ap_inv,
                 y_m, R_m_inv, T_K,
                 weight_Tikhonov, 
-                fl_hydro, flag_any_hydro, lx,
-                spline_repr, Alpha_dB_base, nx_full, nx_single, ) -> float:
+                fl_hydro, flag_any_hydro, 
+                spl_repr, Alpha_dB_base,   ) -> float:   
 
         """
         x_repr is spline reprezentation of x; plus additional parameters
@@ -461,11 +525,24 @@ class OE():
                     
         # an initial value of the cost function
         CF = 0.
-        # measurement vector
+        # state vector
+        ind_x = 0
+        pc_list = []
+        for pc_name in ['PC0', 'PC1', 'PC2']:
+            nx = spl_repr[pc_name].basis.shape[1]      
+            tmp_x = x_repr[ind_x:ind_x+nx]
+            tmp_pc =  spl_repr[pc_name].inverse_transform(tmp_x) 
+            pc_list.append(tmp_pc)
+            ######### finish from here
+
         x = self._form_x_vect(x_repr, spline_repr, lx = lx, nx_full = nx_full, nx_single = nx_single)
         nx = spline_repr.fine_nodes.size
 
+
         x_dict = self._form_x_dict(x, nx, flag_any_hydro, )
+
+
+
         y_dict = self._form_y_dict(x_dict, Alpha_dB_base, flag_any_hydro, T_K, fl_hydro)
     
         int_att_var, var_Zm  = {}, {}
@@ -509,10 +586,10 @@ class OE():
     def retrieve_PC_1D(self, dpr_obj, nscan, nrayMS, 
                         make_plot = False, fig_dir = home,                          
                         method = 'SLSQP', deg = 2, nx_full = 3, nx_single = 0,
-                        plot_diag = False, retr_resol_km = 0.5,
-                        maxiter = 20):
+                        plot_diag = False, retr_resol_ice = 0.5, retr_resol_rain = 1., 
+                        retr_resol_scale_x1 = 2., maxiter = 20, ):
         
-        var_3D_list = ['WC_dB', 'Sm_dB', 'Dm_dB', 'PR_dB',
+        var_3D_list = [ 'Sm_dB', 'Dm_dB', 'PR_dB', 'RWC_dB', 'IWC_dB',
                        'zKuSim', 'zKaSim', 'zKuEffSim', 'zKaEffSim'] 
         
         for var in var_3D_list:
@@ -594,18 +671,53 @@ class OE():
 
         # cloud_top_h = col_ds['Ku'].Altitude[flag_any_hydro].data.max()
         alt_v = col_ds['Ku'].Altitude[flag_any_hydro].data
-        fine_nodes = -1.*alt_v
-        coarse_nodes = -1*np.arange(alt_v[-1]+ retr_resol_km,
-            alt_v[0], retr_resol_km)[::-1]
-        if coarse_nodes[0] == fine_nodes[0]:
-            coarse_nodes = coarse_nodes[1:]
+        nx = alt_v.size # number of the retrieval levels 
+
+        nodes_pc0 = [alt_v[-1],]
+        nodes_pc1 = [alt_v[-1],]
+        if np.any(flag_hydro['rain']):
+            layer_top = np.max(alt_v[fl_hydro['rain']])
+            while nodes_pc0[-1]<layer_top:
+                nodes_pc0.append(nodes_pc0[-1]+retr_resol_rain)
+            while nodes_pc1[-1]<layer_top:
+                nodes_pc1.append(nodes_pc1[-1]+retr_resol_rain*retr_resol_scale_x1)
+        if np.any(flag_hydro['melt']):
+            layer_top = np.max(alt_v[fl_hydro['melt']])
+            while nodes_pc0[-1]<layer_top:
+                nodes_pc0.append(nodes_pc0[-1]+retr_resol_rain)
+            while nodes_pc1[-1]<layer_top:
+                nodes_pc1.append(nodes_pc1[-1]+retr_resol_rain*retr_resol_scale_x1)
+        if np.any(flag_hydro['ice']):
+            layer_top = np.max(alt_v[fl_hydro['ice']])
+            while nodes_pc0[-1]<layer_top:
+                nodes_pc0.append(nodes_pc0[-1]+retr_resol_ice)
+            while nodes_pc1[-1]<layer_top:
+                nodes_pc1.append(nodes_pc1[-1]+retr_resol_ice*retr_resol_scale_x1)
+
+        nodesPC0 = np.array(nodes_pc0)
+        nodesPC1 = np.array(nodes_pc1)
+        nodesPC2 = np.array([alt_v[-1], alt_v[0]])
+
+        spl_basis = {}
+        spl_repr = {}
+        for tmp_x, x_name in zip([nodesPC0, nodesPC1, nodesPC2], 
+                             ['PC0', 'PC1', 'PC2']):           
+            spl_basis[x_name] = np.empty((alt_v.size, tmp_x.size, )) # columns are the basis vectors
+            for ii in range(tmp_x.size):
+                tmp_y = np.zeros_like(tmp_x)
+                tmp_y[ii] = 1.
+                dydx = np.gradient(tmp_y,tmp_x)
+                # dydx = np.gradient(tmp_y,)
+                dydx[0] = 0.
+                # dydx[-1] = 0.
+                spl = CHS(x = tmp_x, y = tmp_y, dydx = dydx)
+                spl_basis[x_name][:, ii] = spl(alt_v)
+            spl_repr[x_name] = basis_repr(spl_basis[x_name])
         
-        spline_repr = representation.spline(fine_nodes = fine_nodes,
-                    coarse_nodes = coarse_nodes,
-                    deg = deg, make_plot=False)
+
         
-        lx = spline_repr.ind_node_signif.size # number of the principal components nodes
-        nx = fine_nodes.size # number of the retrieval levels 
+        # lx = spline_repr.ind_node_signif.size # number of the principal components nodes
+        
       
         for band in bands:
             flag_above = (col_ds[band].nbin < 
@@ -633,8 +745,7 @@ class OE():
             # weight_PIA[band] *= 1+np.sum(weight_Z[band]>3)
         weight_Z['Ku'][Zm_v['Ku']<12] = 0.
         weight_Z['Ka'][Zm_v['Ka']<18] = 0.        
-        std_Zm = {band : 1/np.sqrt(weight_Z[band]) for band in bands} 
-                
+        std_Zm = {band : 1/np.sqrt(weight_Z[band]) for band in bands}                 
         len_Y = (weight_Z['Ku']>0.).sum() + (weight_Z['Ka']>0.).sum() +1
 
         Ze_v ={band: self.HB_correction(ZdB_m = Zm_v[band], 
@@ -664,17 +775,24 @@ class OE():
                  
         # k_per_bin = {band: np.diff(att_corr[band], prepend = 0.) for band in bands}
         
-        pc0_fg = self._fg_pc0( Ze_v = {band: Ze_v[band]+self.WC_db_ap_press_corr 
+        pc0_fg = self._fg_pc0( Ze_v = {band: Ze_v[band]
                 for band in bands}, flag_hydro = flag_hydro)
         pc0_fg = np.maximum(-10., pc0_fg)
-        pc0_fg_rep = spline_repr.get_rep(fine_nodes, 
-                            pc0_fg[flag_any_hydro])
+        pc0_fg_rep = spl_repr['PC0'].transform(pc0_fg[flag_any_hydro])  
+        pc0 = spl_repr['PC0'].inverse_transform(pc0_fg_rep)        
 
-        pc0 = spline_repr(pc0_fg_rep)         
+        # plt.figure()
+        # plt.plot(pc0_fg[flag_any_hydro], alt_v)
+        # plt.plot(pc0, alt_v)
+        # plt.grid()
         
-        PC_arr_fg = np.stack([pc0,pc0*0,pc0*0], axis = 0)
-        Will_arr_fg = self._transform_bases(PC_arr_fg, 
-                            base1 = 'PCA', base2 = 'Will')
+        
+        
+        PC_arr_fg = np.stack([pc0,pc0*0,pc0*0], axis = 1)
+        Phys_arr_fg = self.ScaledPCA.inverse_transform(PC_arr_fg)
+        Will_arr_fg = Phys_arr_fg.copy()        
+        Will_arr_fg[:,1] = self._transform_Sm_dB_Dm_dB_2_Sm_p_dB(
+            Sm_dB = Phys_arr_fg[:,1], Dm_dB = Phys_arr_fg[:,2])
 
 
         BB_ext_dB_HB = misc.dB(np.array(
@@ -697,9 +815,9 @@ class OE():
                 ind_above_bb[-1])
         
         
-        mean_wc_db =  np.mean(Will_arr_fg[0,ind_below_bb])
-        mean_sm_db =  np.mean(Will_arr_fg[1,ind_below_bb])
-        mean_dm_db =  np.mean(Will_arr_fg[2,ind_below_bb])
+        mean_pr_db =  np.mean(Will_arr_fg[ind_below_bb,0])
+        mean_sm_db =  np.mean(Will_arr_fg[ind_below_bb,1])
+        mean_dm_db =  np.mean(Will_arr_fg[ind_below_bb,2])
         
         ones_arr = np.ones(self.radar_sim.scat_LUT['ice']['Ku']['Alpha_dB'].shape)
         Zs_ice = {}
@@ -707,7 +825,7 @@ class OE():
         for ib, band in enumerate(bands):
             Zs_ice[band] = self.radar_sim(
                 hydro = 'ice', var = 'Z', band = band, 
-                WC_dB = mean_wc_db*ones_arr, 
+                PR_dB = mean_pr_db*ones_arr, 
                 Sm_p_dB = mean_sm_db*ones_arr, 
                 Dm_dB = mean_dm_db*ones_arr,
                 Alpha_dB = alpha_test)
@@ -724,9 +842,6 @@ class OE():
         # plt.plot(alpha_test,(Zs_ice['Ku'] - Zm_ice['Ku'])**2)
         # plt.grid()
 
-
-
-
         Alpha_dB_var = 3.**2 #just a random estimate, factor of 2 uncertainty
 
         # Alpha_dB_base = np.interp(T_K[flag_any_hydro], 
@@ -736,11 +851,9 @@ class OE():
         Alpha_dB_base = np.ones(flag_any_hydro.sum())
 
         
-        pc_fg_list = [pc0_fg_rep,]
-        for ii in range(1,nx_full):
-            pc_fg_list.append(np.zeros_like(pc0_fg_rep))
-        for ii in range(nx_single):
-            pc_fg_list.append(np.array([0.]))
+        pc_fg_list = [pc0_fg_rep, 
+                    np.zeros(spl_repr['PC1'].basis.shape[1],),
+                    np.zeros(spl_repr['PC2'].basis.shape[1],)]        
 
         x_rep_fg = np.concatenate(pc_fg_list + 
                             [np.array([Alpha_dB_ap,]), BB_ext_dB_ap])
@@ -754,7 +867,7 @@ class OE():
 
         weight_PC[Zm_v['Ka'][flag_any_hydro]<18] = 0.
         weight_PC[Zm_v['Ku'][flag_any_hydro]<12] = 0.
-        R_ap_inv = np.concatenate([weight_PC/tmp_var for tmp_var in self._pca_variance] + 
+        R_ap_inv = np.concatenate([weight_PC/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
                             [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
         # R_ap_inv = np.concatenate([np.ones(flag_any_hydro.sum())/tmp_var for tmp_var in self._pca_variance] + 
         #                     [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
@@ -804,9 +917,8 @@ class OE():
         args = (x_ap, R_ap_inv,
                 y_m, R_m_inv, T_K,
                 weight_Tikhonov, 
-                fl_hydro, flag_any_hydro, lx,
-                spline_repr, Alpha_dB_base, 
-                nx_full, nx_single)
+                fl_hydro, flag_any_hydro, 
+                spl_repr, Alpha_dB_base)
 
 
         CF_x0 = self._CF_1D(x_rep_fg,  *args) 
@@ -821,7 +933,7 @@ class OE():
                     if dpr_obj.MS['CF_n'][ns,nr]>0:
                         # print(dpr_obj.MS['CF_n'][ns,nr])
                         Phys_arr_t =  np.stack(
-                            [dpr_obj.MS['WC_dB'][ns,nr].data - self.WC_db_ap_press_corr, #pressure correction 
+                            [dpr_obj.MS['PR_dB'][ns,nr].data,
                              dpr_obj.MS['Sm_dB'][ns,nr].data,
                              dpr_obj.MS['Dm_dB'][ns,nr].data], axis = 0)
                         
@@ -896,7 +1008,7 @@ class OE():
         
         out_x['PR_dB'] = self.radar_sim(
             hydro = 'rain', var = 'PR_dB', band = 'Ku', 
-            WC_dB = out_x['WC_dB'], Sm_p_dB = out_x['Sm_p_dB'], 
+            PR_dB = out_x['PR_dB'], Sm_p_dB = out_x['Sm_p_dB'], 
             Dm_dB = out_x['Dm_dB'])
         
         if make_plot:            
@@ -974,7 +1086,7 @@ class OE():
            
             plt.figure()
             plt.grid()
-            plt.plot(out_x['WC_dB']+10,alt_v, label = 'WC_dB')
+            plt.plot(out_x['PR_dB']+10,alt_v, label = 'PR_dB')
             plt.plot(out_x['Sm_p_dB'],alt_v, label = 'Sm_p_dB')
             plt.plot(out_x['Dm_dB'],alt_v, label = 'Dm_dB')        
             
@@ -982,7 +1094,7 @@ class OE():
             plt.plot(Will_arr_fg[1],alt_v, '--', color = 'C1')
             plt.plot(Will_arr_fg[2],alt_v, '--', color = 'C2')     
             
-            plt.plot(out_x['WC_dB'][fl_hydro['melt']]+10,alt_v[fl_hydro['melt']], 'x',  color = 'C0')
+            plt.plot(out_x['PR_dB'][fl_hydro['melt']]+10,alt_v[fl_hydro['melt']], 'x',  color = 'C0')
             plt.plot(out_x['Sm_p_dB'][fl_hydro['melt']],alt_v[fl_hydro['melt']], 'x', color = 'C1')
             plt.plot(out_x['Dm_dB'][fl_hydro['melt']],alt_v[fl_hydro['melt']], 'x', color = 'C2')  
            
@@ -1010,7 +1122,7 @@ class OE():
             plt.savefig(os.path.join(fig_dir,'retr_vs_DPR_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
                     
-        var_3D_list_x = ['WC_dB', 'Sm_dB', 'Dm_dB', 'PR_dB']
+        var_3D_list_x = ['Sm_dB', 'Dm_dB', 'PR_dB']
         for var in var_3D_list_x:
             dpr_obj.MS[var][nscan,nrayMS,ind_any_hydro] = out_x[var]
             
