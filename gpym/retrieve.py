@@ -7,16 +7,17 @@ Created on Thu Jan 27 13:34:33 2022
 """
 import os
 import numpy as np
-import xarray as xr
+import numpy.typing as npt
+# import xarray as xr
 from scipy.optimize import minimize
-from scipy.integrate import cumtrapz
-from scipy.linalg import sqrtm
-from scipy.signal import savgol_filter
+# from scipy.integrate import cumtrapz
+# from scipy.linalg import sqrtm
+# from scipy.signal import savgol_filter
 from scipy.interpolate import CubicHermiteSpline as CHS
 from scipy.spatial import cKDTree
 from scipy.special import expit
 
-from scipy.interpolate import RegularGridInterpolator as RGI
+# from scipy.interpolate import RegularGridInterpolator as RGI
 import matplotlib.pyplot as plt
 import dill
 import timeit
@@ -49,12 +50,11 @@ class ScaledPCA:
                 self.robust_cov=dill.load(f)
             self._calc_params()
         else:
-            self.robust_cov = None       
-            self.components_ = None
-            self.mean_ = None
-            self.std_ = None
-            self.components_ = None
-            self.explained_variance_ = None
+            self.robust_cov = None    
+            # self.components_ = None
+            # self.mean_ = None
+            # self.std_ = None            
+            # self.explained_variance_ = None
         
     def fit(self, X):
         # fit a MCD robust estimator to data
@@ -303,9 +303,9 @@ class OE():
                           
     """
     def _split_x(self, x, lx, nx_full = 3, nx_single = 0) -> list:
-        """
+        
         pc0, pc1, pc2, Alpha ice, BB_ext
-        """
+        
         if nx_full+nx_single>3:
             print('number of unknowns exceeds 3')
             return []
@@ -332,46 +332,54 @@ class OE():
         pc_list = [spline_repr(pc_rep)  for pc_rep in pc_rep_list]
         pc_list.append(split_list[-1])
         return np.concatenate(pc_list)
+    """
 
-    def _form_x_dict(self, x, nx, flag_any_hydro, ) -> dict:
+    def _form_x(self, x_repr, spl_repr, ) -> tuple[dict, npt.NDArray[np.float_]]:
+        # state vector
+        ind_x = 0
+        nx =  spl_repr['PC0'].basis.shape[0]
+        PC_arr = np.zeros((nx, 3) )
+        for ii, pc_name in enumerate(['PC0', 'PC1', 'PC2']):
+            ix = spl_repr[pc_name].basis.shape[1]      
+            tmp_x = x_repr[ind_x:ind_x+ix]
+            tmp_pc =  spl_repr[pc_name].inverse_transform(tmp_x) 
+            PC_arr[:,ii] = tmp_pc
+            ind_x += ix
 
-        split_list = np.split(x,np.arange(1,4)*nx)
-        # a list of PCs is transformed to an array
-        PC_arr = np.stack(split_list[:3], axis = 0)
-
-        # other parameters for simulations
-        parms = split_list[-1]
-        Alpha_dB_bb_top, *BB_ext = parms           
-        BB_ext_dB = np.array([BB_ext[0], BB_ext[0]+ BB_ext[1]])
-
-        # we get Williams' coordinates that are needed for simulations
-        Will_arr = self._transform_bases(PC_arr, 
-                            base1 = 'PCA', base2 = 'Will')
-        # Will_arr[0,:] += self.WC_db_ap_press_corr[flag_any_hydro]  #pressure dependent expected value of WC_dB for a given value of Dm_dB
-        # Williams coordinates are returned if queried
+        x = np.concatenate(
+            [PC_arr[:,0], PC_arr[:,1], PC_arr[:,2], x_repr[ind_x:]])
+               
+        Phys_arr = self.ScaledPCA.inverse_transform(PC_arr)
+        Will_arr = Phys_arr.copy()        
+        Will_arr[:,1] = self._transform_Sm_dB_Dm_dB_2_Sm_p_dB(
+            Sm_dB = Phys_arr[:,1], Dm_dB = Phys_arr[:,2])
         
-        x_dict = dict(PR_dB = Will_arr[0,:], Sm_p_dB = Will_arr[1,:], 
-                    Dm_dB = Will_arr[2,:], Alpha_dB = Alpha_dB_bb_top,
+        Alpha_dB_bb_top, *BB_ext = x_repr[ind_x:]      
+        BB_ext_dB = np.array([BB_ext[0], BB_ext[0]+ BB_ext[1]])
+        Alpha_dB = spl_repr['Alpha_dB'].inverse_transform(np.array([Alpha_dB_bb_top,]))
+
+
+        x_dict = dict(PR_dB = Will_arr[:,0], Sm_p_dB = Will_arr[:,1], 
+                    Dm_dB = Will_arr[:,2], Alpha_dB = Alpha_dB,
                     BB_ext  =  {'Ku': misc.inv_dB(BB_ext_dB[0]),
                                 'Ka': misc.inv_dB(BB_ext_dB[1]),},
                     PCs  = PC_arr )
-        return x_dict
-    """
+        return x_dict, x
+    
 
     def _form_y_vect(self, Zm, Ze, dPIA, ) -> np.ndarray:
         Zm_v = np.concatenate([Zm[band] for band in self.bands])
         Ze_v = np.concatenate([Ze[band] for band in self.bands])
         return np.r_[Zm_v, Ze_v, dPIA]
     
-    def _form_y_dict(self, x_dict, Alpha_dB_base, flag_any_hydro, T_K, fl_hydro) -> dict:
-
-        Alpha_dB = -18.+ Alpha_dB_base*(x_dict['Alpha_dB']+18.)
+    def _form_y_dict(self, x_dict, flag_any_hydro, T_K, fl_hydro) -> dict:
+        
         Zatt_s, pia_s, Ze_s, k_s, int_att_var  = {}, {}, {}, {}, {}
         for ib, band in enumerate(self.bands):
             Zatt_s[band], pia_s[band], Ze_s[band], k_s[band] = self._Forw_model(
                 PR_dB = x_dict['PR_dB'], Sm_p_dB = x_dict['Sm_p_dB'], 
                 Dm_dB= x_dict['Dm_dB'],
-                T_K=T_K[flag_any_hydro], Alpha_dB=Alpha_dB, 
+                T_K=T_K[flag_any_hydro], Alpha_dB=x_dict['Alpha_dB'], 
                 BB_att_1_way = x_dict['BB_ext'][band]*0.5, 
                 flag_hydro=fl_hydro, band = band, range_spacing = self.DPR_res)
         y_dict = dict(Zm = Zatt_s, Ze = Ze_s,
@@ -449,7 +457,7 @@ class OE():
         Zm = np.copy(Ze)
         Zm[1:] += -2.*one_way_att[:-1]
         return Zm, one_way_att[-1]*2, Ze , k
-        
+    """
     def _dForw_model(self, PR_dB, Sm_p_dB, Dm_dB, T_K, Alpha_dB, 
                     flag_hydro, x = 'Dm_dB', band = 'Ku', 
                     range_spacing = 0.125):
@@ -508,13 +516,13 @@ class OE():
         Jac_PIA = 2*Jac_k[np.newaxis,:]*range_spacing
         Jac_Zm += np.tril (np.ones_like(Jac_Zm)*Jac_PIA)
         return Jac_Zm, Jac_PIA, Jac_Ze
-
+        """
     def _CF_1D(self,
                 x_repr,  x_ap, R_ap_inv,
                 y_m, R_m_inv, T_K,
                 weight_Tikhonov, 
                 fl_hydro, flag_any_hydro, 
-                spl_repr, Alpha_dB_base,   ) -> float:   
+                spl_repr,  ) -> float:   
 
         """
         x_repr is spline reprezentation of x; plus additional parameters
@@ -525,25 +533,11 @@ class OE():
                     
         # an initial value of the cost function
         CF = 0.
-        # state vector
-        ind_x = 0
-        pc_list = []
-        for pc_name in ['PC0', 'PC1', 'PC2']:
-            nx = spl_repr[pc_name].basis.shape[1]      
-            tmp_x = x_repr[ind_x:ind_x+nx]
-            tmp_pc =  spl_repr[pc_name].inverse_transform(tmp_x) 
-            pc_list.append(tmp_pc)
-            ######### finish from here
-
-        x = self._form_x_vect(x_repr, spline_repr, lx = lx, nx_full = nx_full, nx_single = nx_single)
-        nx = spline_repr.fine_nodes.size
-
-
-        x_dict = self._form_x_dict(x, nx, flag_any_hydro, )
-
-
-
-        y_dict = self._form_y_dict(x_dict, Alpha_dB_base, flag_any_hydro, T_K, fl_hydro)
+        nx = spl_repr['PC0'].basis.shape[0]
+        # state vector        
+        x_dict, x = self._form_x(x_repr, spl_repr, )
+        # measurement vector
+        y_dict = self._form_y_dict(x_dict, flag_any_hydro, T_K, fl_hydro)
     
         int_att_var, var_Zm  = {}, {}
         for ib, band in enumerate(self.bands):
@@ -570,8 +564,8 @@ class OE():
         CF += CF_b
         
         # cost function corresponding to the smoothing condition (Tikhonov matrix)
-        Tikhonov_components = np.array([np.dot(np.matmul(weight_Tikhonov,x_dict['PCs'][ii,:]),
-                x_dict['PCs'][ii,:]) for ii in range(3)])
+        Tikhonov_components = np.array([np.dot(np.matmul(weight_Tikhonov,x_dict['PCs'][:,ii]),
+                x_dict['PCs'][:,ii]) for ii in range(3)])
         CF_T = np.sum(Tikhonov_components)
         CF += CF_T
 
@@ -585,9 +579,8 @@ class OE():
         
     def retrieve_PC_1D(self, dpr_obj, nscan, nrayMS, 
                         make_plot = False, fig_dir = home,                          
-                        method = 'SLSQP', deg = 2, nx_full = 3, nx_single = 0,
-                        plot_diag = False, retr_resol_ice = 0.5, retr_resol_rain = 1., 
-                        retr_resol_scale_x1 = 2., maxiter = 20, ):
+                        method = 'SLSQP', retr_resol_ice = 0.5, retr_resol_rain = 1.5, 
+                        retr_resol_scale_x1 = 3., maxiter = 30, ):
         
         var_3D_list = [ 'Sm_dB', 'Dm_dB', 'PR_dB', 'RWC_dB', 'IWC_dB',
                        'zKuSim', 'zKaSim', 'zKuEffSim', 'zKaEffSim'] 
@@ -613,6 +606,8 @@ class OE():
         col_ds = {band: dpr_obj[sn[band]].isel(
             nscan = nscan, nrayMS = nrayMS).load() for band in bands}
         
+              
+        
         #### read measured reflectivities
         Zm_v = {band: col_ds[band].zFactorMeasured.data*1. for band in bands}
         phase = col_ds['Ku'].phase.data*1.
@@ -620,6 +615,13 @@ class OE():
         T_K[phase<=100] = phase[phase<=100]-100+273.15
         T_K[phase>=200] = phase[phase>=200]-200+273.15
         T_K[(phase<200) & (phase>100)] = 273.15
+
+        #Freezing level height
+        if np.any(phase>=200):
+            FL_height = (176-col_ds['Ku'].binBBTop.data)*0.125 
+        else:
+            FL_height = (176-col_ds['Ku'].binZeroDeg.data)*0.125  
+        
         
         std_Z = {band: self._std_Z_DPR(Zm_v[band]) for band in bands} 
         weight_Z = {band: 1/std_Z[band]**2 for band in bands}       
@@ -675,49 +677,51 @@ class OE():
 
         nodes_pc0 = [alt_v[-1],]
         nodes_pc1 = [alt_v[-1],]
-        if np.any(flag_hydro['rain']):
-            layer_top = np.max(alt_v[fl_hydro['rain']])
-            while nodes_pc0[-1]<layer_top:
-                nodes_pc0.append(nodes_pc0[-1]+retr_resol_rain)
-            while nodes_pc1[-1]<layer_top:
-                nodes_pc1.append(nodes_pc1[-1]+retr_resol_rain*retr_resol_scale_x1)
-        if np.any(flag_hydro['melt']):
-            layer_top = np.max(alt_v[fl_hydro['melt']])
-            while nodes_pc0[-1]<layer_top:
-                nodes_pc0.append(nodes_pc0[-1]+retr_resol_rain)
-            while nodes_pc1[-1]<layer_top:
-                nodes_pc1.append(nodes_pc1[-1]+retr_resol_rain*retr_resol_scale_x1)
-        if np.any(flag_hydro['ice']):
-            layer_top = np.max(alt_v[fl_hydro['ice']])
-            while nodes_pc0[-1]<layer_top:
+
+
+        while nodes_pc0[-1]<FL_height:
+            nodes_pc0.append(nodes_pc0[-1]+retr_resol_rain)
+        while nodes_pc1[-1]<FL_height:
+            nodes_pc1.append(nodes_pc1[-1]+retr_resol_rain*retr_resol_scale_x1)
+
+        while nodes_pc0[-1]<alt_v[0]-retr_resol_ice/2*3:
                 nodes_pc0.append(nodes_pc0[-1]+retr_resol_ice)
-            while nodes_pc1[-1]<layer_top:
+        while nodes_pc1[-1]<alt_v[0]-retr_resol_ice*retr_resol_scale_x1/2*3:
                 nodes_pc1.append(nodes_pc1[-1]+retr_resol_ice*retr_resol_scale_x1)
-
-        nodesPC0 = np.array(nodes_pc0)
-        nodesPC1 = np.array(nodes_pc1)
-        nodesPC2 = np.array([alt_v[-1], alt_v[0]])
-
+        
+        nodes_pc0.append(alt_v[0])
+        nodes_pc1.append(alt_v[0])       
+        spl_nodes = {'PC0': np.array(nodes_pc0),
+                     'PC1': np.array(nodes_pc1),
+                     'PC2': np.array([alt_v[-1], alt_v[0]])}
+        
         spl_basis = {}
         spl_repr = {}
-        for tmp_x, x_name in zip([nodesPC0, nodesPC1, nodesPC2], 
-                             ['PC0', 'PC1', 'PC2']):           
-            spl_basis[x_name] = np.empty((alt_v.size, tmp_x.size, )) # columns are the basis vectors
-            for ii in range(tmp_x.size):
-                tmp_y = np.zeros_like(tmp_x)
-                tmp_y[ii] = 1.
-                dydx = np.gradient(tmp_y,tmp_x)
-                # dydx = np.gradient(tmp_y,)
-                dydx[0] = 0.
-                # dydx[-1] = 0.
-                spl = CHS(x = tmp_x, y = tmp_y, dydx = dydx)
-                spl_basis[x_name][:, ii] = spl(alt_v)
+        for x_name, tmp_x in spl_nodes.items():           
+            spl_basis[x_name] = np.empty((nx, tmp_x.size, )) # columns are the basis vectors
+            if tmp_x.size>1:
+                for ii in range(tmp_x.size):
+                    tmp_y = np.zeros_like(tmp_x)
+                    tmp_y[ii] = 1.
+                    dydx = np.gradient(tmp_y,tmp_x)
+                    # dydx = np.gradient(tmp_y,)
+                    dydx[0] = 0.
+                    # dydx[-1] = 0.
+                    spl = CHS(x = tmp_x, y = tmp_y, dydx = dydx)
+                    spl_basis[x_name][:, ii] = spl(alt_v)
+            elif tmp_x.size==1:
+                spl_basis[x_name][:, 0] = np.ones(alt_v.size)
             spl_repr[x_name] = basis_repr(spl_basis[x_name])
         
+        spl_basis['Alpha_dB'] = np.ones((nx,1))
+        spl_repr['Alpha_dB'] = basis_repr(spl_basis['Alpha_dB'])
+        # Alpha_dB_base = np.interp(T_K[flag_any_hydro], 
+        #         [0,273.15-30, 273.15, 400.],
+        #         [0., 0., 1., 1.])
 
+       
         
-        # lx = spline_repr.ind_node_signif.size # number of the principal components nodes
-        
+            
       
         for band in bands:
             flag_above = (col_ds[band].nbin < 
@@ -843,13 +847,6 @@ class OE():
         # plt.grid()
 
         Alpha_dB_var = 3.**2 #just a random estimate, factor of 2 uncertainty
-
-        # Alpha_dB_base = np.interp(T_K[flag_any_hydro], 
-        #         [0,273.15-30, 273.15, 400.],
-        #         [0., 0., 1., 1.])
-
-        Alpha_dB_base = np.ones(flag_any_hydro.sum())
-
         
         pc_fg_list = [pc0_fg_rep, 
                     np.zeros(spl_repr['PC1'].basis.shape[1],),
@@ -869,8 +866,9 @@ class OE():
         weight_PC[Zm_v['Ku'][flag_any_hydro]<12] = 0.
         R_ap_inv = np.concatenate([weight_PC/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
                             [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
-        # R_ap_inv = np.concatenate([np.ones(flag_any_hydro.sum())/tmp_var for tmp_var in self._pca_variance] + 
-        #                     [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
+        
+        R_ap_inv = np.concatenate([np.ones(nx)/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
+                            [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
         
         # weight of a-priori PCs, more weight in rain 
         w_max = 6.**2.
@@ -882,7 +880,7 @@ class OE():
 
         T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w) # measures deviation from a constant value 
         T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*4.  # measures deviation from a linear change 
-        weight_Tikhonov = (T1_mat + T2_mat)*81.
+        weight_Tikhonov = (T1_mat + T2_mat)*9.
 
         # Tikhonov_matrix = np.zeros((3*nx + 3, 3*nx + 3))
         
@@ -918,52 +916,52 @@ class OE():
                 y_m, R_m_inv, T_K,
                 weight_Tikhonov, 
                 fl_hydro, flag_any_hydro, 
-                spl_repr, Alpha_dB_base)
+                spl_repr, )
 
 
-        CF_x0 = self._CF_1D(x_rep_fg,  *args) 
+        # CF_x0 = self._CF_1D(x_rep_fg,  *args) 
         # print(x_ap.shape)
 
-        ret_shape = dpr_obj.MS.Longitude.shape
-        for ii in range(-1,2):
-            nr =  nrayMS+ii           
-            for jj in range(-1,2):
-                ns = nscan+jj                
-                if nr>0 and nr<ret_shape[1] and ns>0 and ns<ret_shape[0]:
-                    if dpr_obj.MS['CF_n'][ns,nr]>0:
-                        # print(dpr_obj.MS['CF_n'][ns,nr])
-                        Phys_arr_t =  np.stack(
-                            [dpr_obj.MS['PR_dB'][ns,nr].data,
-                             dpr_obj.MS['Sm_dB'][ns,nr].data,
-                             dpr_obj.MS['Dm_dB'][ns,nr].data], axis = 0)
+        # ret_shape = dpr_obj.MS.Longitude.shape
+        # for ii in range(-1,2):
+        #     nr =  nrayMS+ii           
+        #     for jj in range(-1,2):
+        #         ns = nscan+jj                
+        #         if nr>0 and nr<ret_shape[1] and ns>0 and ns<ret_shape[0]:
+        #             if dpr_obj.MS['CF_n'][ns,nr]>0:
+        #                 # print(dpr_obj.MS['CF_n'][ns,nr])
+        #                 Phys_arr_t =  np.stack(
+        #                     [dpr_obj.MS['PR_dB'][ns,nr].data,
+        #                      dpr_obj.MS['Sm_dB'][ns,nr].data,
+        #                      dpr_obj.MS['Dm_dB'][ns,nr].data], axis = 0)
                         
-                        PC_arr_t =  np.matmul(self.base_change_mat['PCA']['phys'].T,
-                                    Phys_arr_t - self.shift_vect['PCA']['phys'])
-                        pc_fg_rep = []
-                        for pp in range(nx_full):                            
-                            pc_fg_rep.append( spline_repr.get_rep(fine_nodes, 
-                                            PC_arr_t[pp,flag_any_hydro]))
-                        for pp in range(nx_single):
-                            pc_fg_rep.append(np.array([np.mean(spline_repr.get_rep(fine_nodes, 
-                                            PC_arr_t[pp+nx_full,flag_any_hydro])),]))
+        #                 PC_arr_t =  np.matmul(self.base_change_mat['PCA']['phys'].T,
+        #                             Phys_arr_t - self.shift_vect['PCA']['phys'])
+        #                 pc_fg_rep = []
+        #                 for pp in range(nx_full):                            
+        #                     pc_fg_rep.append( spline_repr.get_rep(fine_nodes, 
+        #                                     PC_arr_t[pp,flag_any_hydro]))
+        #                 for pp in range(nx_single):
+        #                     pc_fg_rep.append(np.array([np.mean(spline_repr.get_rep(fine_nodes, 
+        #                                     PC_arr_t[pp+nx_full,flag_any_hydro])),]))
                                         
-                        x_prev = np.concatenate(pc_fg_rep +
-                            [np.array([dpr_obj.MS['Alpha_dB'].data[ns,nr],]),                             
-                            BB_ext_dB_ap])
+        #                 x_prev = np.concatenate(pc_fg_rep +
+        #                     [np.array([dpr_obj.MS['Alpha_dB'].data[ns,nr],]),                             
+        #                     BB_ext_dB_ap])
                             
-                        CF_xp = self._CF_1D(x_prev,  *args)                        
+        #                 CF_xp = self._CF_1D(x_prev,  *args)                        
 
-                        if CF_xp<CF_x0:   
-                            print('CF: %.1f -> %.1f x0 updated' % (CF_x0, CF_xp) )
-                            x_rep_fg = 1.*x_prev
-                            CF_x0 = 1.*CF_xp
-                            # print(x_rep_fg.shape)
+        #                 if CF_xp<CF_x0:   
+        #                     print('CF: %.1f -> %.1f x0 updated' % (CF_x0, CF_xp) )
+        #                     x_rep_fg = 1.*x_prev
+        #                     CF_x0 = 1.*CF_xp
+        #                     # print(x_rep_fg.shape)
 
         # method = 'Powell'
         # method = 'SLSQP'
 
 
-        bounds = [(-8., 8.) for ii in range(lx*nx_full+nx_single)]
+        bounds = [(-8., 8.) for ii in range(x_rep_fg.size-3)]
         bounds += [(-18.,-3.), (-20.,10.), (3., 12.)]
 
         for jj in range(x_rep_fg.size):
@@ -986,33 +984,49 @@ class OE():
         #     iter.append(y_dict['pia']['Ka'] - y_dict['pia']['Ku'])
         #     plt.figure(99)
         #     plt.plot(len(iter), iter[-1])
+        
+
 
         res = minimize(self._CF_1D, x0 = x_rep_fg, method = method, 
             options=options,  args = args,  bounds = bounds, )
-        
-
-
         time_meth = timeit.default_timer() - starttime
         print("%1.1fs" % ( time_meth, ))
+
+        """
+        res = minimize(self._CF_1D, x0 = x_rep_fg, method = 'Powell', 
+            options = {'disp': True,  'ftol': 5e-03, },  args = args,  bounds = bounds, )
+
+        res = minimize(self._CF_1D, x0 = res.x, method = 'TNC', 
+            options = {'disp': True,  'ftol': 5e-03, },  args = args,  bounds = bounds, )
+        
+        """
                         
-        
-        
-        x = self._form_x_vect(x_repr = res.x, spline_repr = spline_repr,
-            lx = lx, nx_full = nx_full, nx_single = nx_single)
-        out_x = self._form_x_dict(x, nx, flag_any_hydro, )
-        out_y = self._form_y_dict(out_x, Alpha_dB_base, flag_any_hydro, T_K, fl_hydro)
-       
-        
+        out_x, x = self._form_x(res.x, spl_repr, )
+        # measurement vector
+        out_y = self._form_y_dict(out_x, flag_any_hydro, T_K, fl_hydro)
+                
         out_x['Sm_dB'] = self._transform_Sm_p_dB_Dm_dB_2_Sm_dB(
             Sm_p_dB = out_x['Sm_p_dB'], Dm_dB = out_x['Dm_dB'] )
         
-        out_x['PR_dB'] = self.radar_sim(
-            hydro = 'rain', var = 'PR_dB', band = 'Ku', 
+        out_x['WC_dB'] = self.radar_sim(
+            hydro = 'rain', var = 'RWC_dB', band = 'Ku', 
             PR_dB = out_x['PR_dB'], Sm_p_dB = out_x['Sm_p_dB'], 
             Dm_dB = out_x['Dm_dB'])
         
+        IWC_dB = self.radar_sim(
+            hydro = 'ice', var = 'IWC_dB', band = 'Ku', 
+            PR_dB = out_x['PR_dB'], Sm_p_dB = out_x['Sm_p_dB'], 
+            Dm_dB = out_x['Dm_dB'])
+        out_x['WC_dB'][fl_hydro['ice']] = IWC_dB[fl_hydro['ice']]
+        out_x['WC_dB'][fl_hydro['melt']] = np.nan # transistion to be defined
+        
+        
         if make_plot:            
             save_str = 'SRT_backward'
+            title_str = r'$\alpha$= %.1f; $PIA_s$: %.1f; %.1f; $PIA_m$: %.1f; %.1f; $BB_{ext}$ : %.1f, %.1f; ' % (
+                out_x['Alpha_dB'][-1],
+                out_y['pia']['Ku'], out_y['pia']['Ka'], PIAm['Ku'], PIAm['Ka'],
+                out_x['BB_ext']['Ku'],  out_x['BB_ext']['Ka'], )
             plt.figure()
             for ib, band in enumerate(bands):     
                 zm_plot = Zm_v[band][flag_any_hydro]*1.      
@@ -1027,15 +1041,10 @@ class OE():
                 zm_plot = out_y['Ze'][band]*1.
                 zm_plot[fl_hydro['melt']] = np.nan
                 plt.plot(zm_plot,alt_v, ':', color = 'C%d' % ib)
-
             plt.grid()
-            plt.ylim(0, 10,)
-            plt.xlim(14,46)
-            plt.title(' alph.= %.1f; $PIA_s$: %.1f; %.1f; $PIA_m$: %.1f; %.1f; \n att BB sim : %.1f, %.1f; ' % (
-                out_x['Alpha_dB'],
-                out_y['pia']['Ku'], out_y['pia']['Ka'], PIAm['Ku'], PIAm['Ka'],
-                out_x['BB_ext']['Ku'],  out_x['BB_ext']['Ka'],
-                ))
+            plt.ylim(0, alt_v[0]+0.25,)
+            plt.xlim(12,46)
+            plt.title(title_str)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'Z_meas_Z_sim_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
@@ -1048,21 +1057,13 @@ class OE():
                                 x1 = zm_plot - np.sqrt(var_Ze[band][flag_any_hydro] ),
                                 x2 = zm_plot + np.sqrt(var_Ze[band][flag_any_hydro]),
                                 color = 'C%d' % ib, alpha = 0.3 )
-                
-                
                 zm_plot = out_y['Ze'][band]*1.
                 zm_plot[fl_hydro['melt']] = np.nan
                 plt.plot(zm_plot,alt_v, '--', color = 'C%d' % ib)
             plt.grid()
-            plt.ylim(0, 10,)
-            plt.xlim(14,46)
-            plt.title((' alph.= %.1f; $PIA_s$: %.1f; %.1f; $PIA_m$: %.1f; %.1f;' + 
-                      '\n att BB sim : %.1f, %.1f; delta PIA meas.and sim.: %.1f, %.1f' )% (
-                out_x['Alpha_dB'],
-                out_y['pia']['Ku'], out_y['pia']['Ka'], PIAm['Ku'], PIAm['Ka'],
-                out_x['BB_ext']['Ku'],  out_x['BB_ext']['Ka'], 
-                delta_PIA, out_y['pia']['Ka'] - out_y['pia']['Ku']
-                ))
+            plt.ylim(0, alt_v[0]+0.25,)
+            plt.xlim(12,46)
+            plt.title(title_str)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'Z_e_Z_sim_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
@@ -1070,14 +1071,14 @@ class OE():
             
             plt.figure()
             for ib in range(3):  
-                PC = out_x['PCs'][ib,:]/np.sqrt(self._pca_variance[ib] )
+                PC = out_x['PCs'][:,ib]
                 plt.plot(PC,alt_v, '-', color = 'C%d' % ib,
                         label = 'PC%d' % ib)                                 
             plt.legend()
             plt.grid()
-            plt.ylim(0, 10,)
-            plt.xlim(-3,3)   
-            plt.xlabel('PC/std(PC)')
+            plt.ylim(0, alt_v[0]+0.25,)
+            plt.xlim(-5,5)   
+            plt.xlabel('PC')
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'PCs_retr_ap_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
@@ -1086,23 +1087,23 @@ class OE():
            
             plt.figure()
             plt.grid()
-            plt.plot(out_x['PR_dB']+10,alt_v, label = 'PR_dB')
+            plt.plot(out_x['PR_dB'],alt_v, label = 'PR_dB')
             plt.plot(out_x['Sm_p_dB'],alt_v, label = 'Sm_p_dB')
             plt.plot(out_x['Dm_dB'],alt_v, label = 'Dm_dB')        
             
-            plt.plot(Will_arr_fg[0]+10,alt_v, '--',  color = 'C0')
-            plt.plot(Will_arr_fg[1],alt_v, '--', color = 'C1')
-            plt.plot(Will_arr_fg[2],alt_v, '--', color = 'C2')     
+            plt.plot(Will_arr_fg[:,0],alt_v, '--',  color = 'C0')
+            plt.plot(Will_arr_fg[:,1],alt_v, '--', color = 'C1')
+            plt.plot(Will_arr_fg[:,2],alt_v, '--', color = 'C2')     
             
-            plt.plot(out_x['PR_dB'][fl_hydro['melt']]+10,alt_v[fl_hydro['melt']], 'x',  color = 'C0')
+            plt.plot(out_x['PR_dB'][fl_hydro['melt']],alt_v[fl_hydro['melt']], 'x',  color = 'C0')
             plt.plot(out_x['Sm_p_dB'][fl_hydro['melt']],alt_v[fl_hydro['melt']], 'x', color = 'C1')
             plt.plot(out_x['Dm_dB'][fl_hydro['melt']],alt_v[fl_hydro['melt']], 'x', color = 'C2')  
            
            
             plt.title('retrieval: "-", first guess: "--", melting: "x"')
             plt.legend()
-            plt.xlim(-5, 10)
-            plt.ylim(0, 10)
+            plt.xlim(-10, 10)
+            plt.ylim(0, alt_v[0]+0.25)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'retr_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
@@ -1116,7 +1117,7 @@ class OE():
             plt.plot(col_ds['Ku'].precipRate[flag_any_hydro],alt_v, '--',  color = 'C1', )
             plt.title('retrieval: "-", DPR: "--"')
             plt.legend()
-            plt.ylim(0, 10)
+            plt.ylim(0, alt_v[0]+0.25,)
             plt.xlim(0, 25)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'retr_vs_DPR_nrMS_%d_ns_%d_%s.png' % (
@@ -1138,7 +1139,7 @@ class OE():
             dpr_obj.MS[var_out][nscan,nrayMS] = out_x['BB_ext'][band]
             
             
-        dpr_obj.MS['Alpha_dB'][nscan,nrayMS] = out_x['Alpha_dB']
+        dpr_obj.MS['Alpha_dB'][nscan,nrayMS] = out_x['Alpha_dB'][-1]
         dpr_obj.MS['CF_n'][nscan,nrayMS] = res.fun/len_Y       
                 
                           
