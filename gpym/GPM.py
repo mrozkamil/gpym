@@ -17,10 +17,10 @@ class GPM():
     def __setitem__(self, key, value):
         setattr(self, key, value)
     
-    def __init__(self, filename , subgroups = None, consistency_test = False): 
+    def __init__(self, filename , subgroups = None, consistency_test = False, concat_dim = 'nscan'): 
         self.swaths = []
         self.open_dataset(filename, subgroups = subgroups, 
-                consistency_test = consistency_test)
+                consistency_test = consistency_test, concat_dim = concat_dim)
               
 
     def add_subgroup(self, filename, subgroup, concat_dim = 'nscan',
@@ -91,8 +91,7 @@ class DPR(GPM):
                 dh = 0.25
             else:
                 var_n = None
-            if var_n:     
-                
+            if var_n:
                 height = (self[key][var_n].size - self[key][var_n]-1)*dh
                 # print(var_n)
                 # print(key)
@@ -108,6 +107,7 @@ class DPR(GPM):
                 coords.append('Altitude')  
                 self[key] =  self[key].set_coords(coords)
                 self[key].attrs['range_spacing'] = dh
+            
                 
         ### restricting the NS data to the MS swath
         if 'NS' in methods: 

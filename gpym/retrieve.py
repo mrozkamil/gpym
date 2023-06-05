@@ -39,7 +39,7 @@ sys.path.append(os.path.join(home, 'Scripts','Python3', 'gpym'))
 from gpym import simulate, misc, representation
 from gpym.retrieve import OE
 self = OE()
-module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
+module_path = os.path.join( home, 'Scripts', 'Python3', 'gpym', 'gpym')
 """
 
 class ScaledPCA:
@@ -98,6 +98,7 @@ class ScaledPCA:
         # add back the mean of the training data
         X_original = X_original + self.mean_        
         return X_original
+        
     
 class basis_repr():
     """
@@ -119,11 +120,11 @@ class basis_repr():
         return X_original
 
 class OE():
-    def __init__(self, filename = None, ):
+    def __init__(self, filename = None, apriori = 'GV_radars'):
         
         
         self.DPR_res = 0.125 #km
-        self.radar_sim = simulate.radar_simulator(get_derivatives = True)
+        self.radar_sim = simulate.radar_simulator(get_derivatives = False)
         self.bands = ['Ku', 'Ka',]
         
         # each radar bin is represented by 3 unknowns in a form of a column vector
@@ -138,10 +139,20 @@ class OE():
         # 10log10 sigma_m prime (PSD width) [mm] (it removes a correlation between Sigma_m and D_m)
         # 10log10 D_m [mm]
         self.Williams_vars = ['PR_dB', 'Sm_p_dB', 'Dm_dB']
-        
-        dsd_stat_fn = os.path.join(module_path, 'dsd_stats', 
+        stat_fn = os.path.join(module_path, 'dsd_stats', 
                     'NASA_DSD_dataset_all_5min_MinCovDet_analysis_var_scaled.pkl')
-        self.ScaledPCA = ScaledPCA(dsd_stat_fn = dsd_stat_fn)
+        if apriori == 'GV_disdrometers':
+            stat_fn = os.path.join(module_path, 'dsd_stats', 
+                    'NASA_DSD_dataset_all_5min_MinCovDet_analysis_var_scaled.pkl')
+        elif apriori == 'GV_radars':
+            stat_fn = os.path.join(module_path, 'dsd_stats',
+                'GPM_GV_dataset_MinCovDet_analysis.pkl')
+        elif apriori == 'GV_radars_old':
+            stat_fn = os.path.join(module_path, 'dsd_stats',
+                'GPM_GV_dataset_MinCovDet_analysis_test.pkl')
+                
+            
+        self.ScaledPCA = ScaledPCA(dsd_stat_fn = stat_fn)
         
         """
         # our scattering tables are generated assuming a constant mass flux, 
@@ -179,8 +190,8 @@ class OE():
 
         """
       
-        n_points = 101
-        pc0_table = np.linspace(-5, 5 , n_points)
+        n_points = 201
+        pc0_table = np.linspace(-10, 10 , n_points)
         pc_arr = np.stack([pc0_table, 
                 np.zeros(n_points), 
                 np.zeros(n_points)], axis = 1)
@@ -217,6 +228,10 @@ class OE():
                                 Z_table[hydro]['Ka']]).T
             self.KDTree[hydro]['DPR'] = cKDTree(coords)
         self.KDTree_pc0 = pc0_table
+        self.KDTree_PR_dB = phys_arr[:,0]
+        self.KDTree_Sm_dB = phys_arr[:,1]
+        self.KDTree_Dm_dB = phys_arr[:,2]
+        
         
         fact = np.log(10)/10
         # self.Ze_sim_unc = {'Ka': 0.5, 'Ku': 1.2}
@@ -582,8 +597,8 @@ class OE():
                         method = 'SLSQP', retr_resol_ice = 0.5, retr_resol_rain = 1.5, 
                         retr_resol_scale_x1 = 3., maxiter = 30, ):
         
-        var_3D_list = [ 'Sm_dB', 'Dm_dB', 'PR_dB', 'RWC_dB', 'IWC_dB',
-                       'zKuSim', 'zKaSim', 'zKuEffSim', 'zKaEffSim'] 
+        var_3D_list = [ 'Sm_dB', 'Dm_dB', 'PR_dB', 'WC_dB', 
+                        'zKuSim', 'zKaSim', 'zKuEffSim', 'zKaEffSim'] 
         
         for var in var_3D_list:
             if var not in list(dpr_obj.MS.variables):
@@ -617,7 +632,7 @@ class OE():
         T_K[(phase<200) & (phase>100)] = 273.15
 
         #Freezing level height
-        if np.any(phase>=200):
+        if np.any(phase>=200) & (col_ds['Ku'].binBBTop.data>0):
             FL_height = (176-col_ds['Ku'].binBBTop.data)*0.125 
         else:
             FL_height = (176-col_ds['Ku'].binZeroDeg.data)*0.125  
@@ -651,11 +666,21 @@ class OE():
             'melt': ((col_ds['Ku'].phase>=100) & 
                     (col_ds['Ku'].phase<200)).data,
             'ice': ((col_ds['Ku'].phase<100) & (Zm_v['Ku']>10) & (
-                    col_ds['Ku'].nbin >= col_ds['Ku'].binStormTop-8)).data,
+                    col_ds['Ku'].nbin >= col_ds['Ku'].binStormTop)).data,
             'rain': (col_ds['Ku'].phase.values>=200) & (Zm_v['Ku']>10) & (
                 col_ds['Ku'].nbin <= col_ds['Ku'].binRealSurface.values )}
 
         ind_ice = np.where(flag_hydro['ice'])[0]
+        if ind_ice.size>0:
+            ii = ind_ice[0]-1
+            while (Zm_v['Ku'][ii]>9.5) and (ii>=0):
+                print(ii)
+                flag_hydro['ice'][ii] = True
+                ii += -1
+                
+        ind_ice = np.where(flag_hydro['ice'])[0]
+                
+        
         flag_hydro['ice'][ind_ice[-1]] = False
         flag_hydro['melt'][ind_ice[-1]] = True
         
@@ -677,20 +702,27 @@ class OE():
 
         nodes_pc0 = [alt_v[-1],]
         nodes_pc1 = [alt_v[-1],]
-
-
-        while nodes_pc0[-1]<FL_height:
-            nodes_pc0.append(nodes_pc0[-1]+retr_resol_rain)
-        while nodes_pc1[-1]<FL_height:
-            nodes_pc1.append(nodes_pc1[-1]+retr_resol_rain*retr_resol_scale_x1)
-
-        while nodes_pc0[-1]<alt_v[0]-retr_resol_ice/2*3:
-                nodes_pc0.append(nodes_pc0[-1]+retr_resol_ice)
-        while nodes_pc1[-1]<alt_v[0]-retr_resol_ice*retr_resol_scale_x1/2*3:
-                nodes_pc1.append(nodes_pc1[-1]+retr_resol_ice*retr_resol_scale_x1)
         
-        nodes_pc0.append(alt_v[0])
-        nodes_pc1.append(alt_v[0])       
+        for lev_height, vert_res in zip([FL_height, alt_v[0]], 
+                [retr_resol_rain, retr_resol_ice]):
+        
+            while nodes_pc0[-1]<lev_height-vert_res/2*3:
+                nodes_pc0.append(nodes_pc0[-1]+vert_res)
+            while nodes_pc1[-1]<lev_height-vert_res/2*3*retr_resol_scale_x1:
+                nodes_pc1.append(nodes_pc1[-1]+vert_res*retr_resol_scale_x1)
+        
+        if nodes_pc0[-1]>=alt_v[0]:
+            nodes_pc0[-1]=alt_v[0]
+        else:
+            nodes_pc0.append(alt_v[0])
+            
+        if nodes_pc1[-1]>=alt_v[0]:
+            nodes_pc1[-1]=alt_v[0]
+        else:
+            nodes_pc1.append(alt_v[0])
+        
+        
+              
         spl_nodes = {'PC0': np.array(nodes_pc0),
                      'PC1': np.array(nodes_pc1),
                      'PC2': np.array([alt_v[-1], alt_v[0]])}
@@ -704,6 +736,9 @@ class OE():
                     tmp_y = np.zeros_like(tmp_x)
                     tmp_y[ii] = 1.
                     dydx = np.gradient(tmp_y,tmp_x)
+                    # print(dydx)
+                    # print(tmp_x)
+                    # print(tmp_y)
                     # dydx = np.gradient(tmp_y,)
                     dydx[0] = 0.
                     # dydx[-1] = 0.
@@ -747,7 +782,7 @@ class OE():
                 weight_Z[band][ind_extrap] = 1./(.4**2) #1./(1.5**2)
                 Zm_v[band][ind_extrap] = np.mean(Zm_v[band][ind_extrap_input])
             # weight_PIA[band] *= 1+np.sum(weight_Z[band]>3)
-        weight_Z['Ku'][Zm_v['Ku']<12] = 0.
+        weight_Z['Ku'][Zm_v['Ku']<10] = 0.
         weight_Z['Ka'][Zm_v['Ka']<18] = 0.        
         std_Zm = {band : 1/np.sqrt(weight_Z[band]) for band in bands}                 
         len_Y = (weight_Z['Ku']>0.).sum() + (weight_Z['Ka']>0.).sum() +1
@@ -858,16 +893,15 @@ class OE():
         x_ap = np.concatenate([np.zeros(nx), np.zeros(nx), np.zeros(nx)] + 
                             [np.array([Alpha_dB_ap,]), BB_ext_dB_ap])
 
-        min_w = 0.1
-        weight_PC = min_w+ (1.**2-min_w)*expit( 
-            (ind_any_hydro - ind_any_hydro[fl_hydro['ice']][-1])/8*6+6)
-
-        weight_PC[Zm_v['Ka'][flag_any_hydro]<18] = 0.
-        weight_PC[Zm_v['Ku'][flag_any_hydro]<12] = 0.
-        R_ap_inv = np.concatenate([weight_PC/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
-                            [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
+        # min_w = 0.25
+        # weight_PC = min_w+ (1.**2-min_w)*expit( 
+        #     (ind_any_hydro - ind_any_hydro[fl_hydro['ice']][-1])/8*6+6)
+            
         
-        R_ap_inv = np.concatenate([np.ones(nx)/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
+        weight_PC = np.ones(nx)
+        weight_PC[Zm_v['Ka'][flag_any_hydro]<18] = 0.
+        weight_PC[Zm_v['Ku'][flag_any_hydro]<10] = 0.
+        R_ap_inv = np.concatenate([weight_PC/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
                             [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
         
         # weight of a-priori PCs, more weight in rain 
@@ -878,9 +912,9 @@ class OE():
         w[fl_hydro['melt']] = np.interp(
             np.arange(l_melt), [0,l_melt], [1., w_max] )
 
-        T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w) # measures deviation from a constant value 
+        # T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w)*0 # measures deviation from a constant value 
         T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*4.  # measures deviation from a linear change 
-        weight_Tikhonov = (T1_mat + T2_mat)*9.
+        weight_Tikhonov = T2_mat
 
         # Tikhonov_matrix = np.zeros((3*nx + 3, 3*nx + 3))
         
@@ -1123,7 +1157,7 @@ class OE():
             plt.savefig(os.path.join(fig_dir,'retr_vs_DPR_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
                     
-        var_3D_list_x = ['Sm_dB', 'Dm_dB', 'PR_dB']
+        var_3D_list_x = ['Sm_dB', 'Dm_dB', 'PR_dB', 'WC_dB']
         for var in var_3D_list_x:
             dpr_obj.MS[var][nscan,nrayMS,ind_any_hydro] = out_x[var]
             

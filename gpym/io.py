@@ -116,12 +116,12 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True, consistency_test 
         print(list(ncf.groups.keys()))
 
 def open_mfdataset(file_list, subgroup = 'NS', read_attrs = True,
-                   dim = 'nscan'):
+                   dim = 'nscan', consistency_test = False):
     if len(file_list)>0:       
         dsets = []
         for filename in file_list:
             dsets.append(open_dataset(filename, subgroup = subgroup, 
-                             read_attrs = read_attrs))
+                             read_attrs = read_attrs, consistency_test = consistency_test))
         dset = xr.concat(dsets, dim = dim, 
                          combine_attrs = 'drop_conflicts')
         return dset
