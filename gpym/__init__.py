@@ -8,16 +8,14 @@ from . import io
 # from . import env
 from . import GPM
 from . import misc
-from . import vis
+# from . import vis
 # from . import refractive
 from . import simulate
-from . import retrieve
+# from . import retrieve
 from . import representation
 
 import matplotlib.pyplot as plt
 import matplotlib.style as style
-
-
 
 plt.ion()
 # plt default plot properties
