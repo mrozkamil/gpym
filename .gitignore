@@ -18,6 +18,7 @@ lib/
 lib64/
 parts/
 scripts/
+plots/
 sdist/
 var/
 wheels/
@@ -141,3 +142,5 @@ cython_debug/
 # OSX files
 .DS_Store
 
+# large netCDF files
+*stats_Gamma.nc
