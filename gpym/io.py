@@ -3,7 +3,7 @@
 """
 Created on Fri Feb  5 11:17:24 2021
 
-@author: km357
+@author: kamil.mroz@le.ac.uk
 """
 # import os, re
 # from pandas import to_datetime 
@@ -12,28 +12,35 @@ import xarray as xr
 # import numpy as np
 xr.set_options(display_style="html")
                  
-def _rename_dims(dset, dim_set, ):
+def _rename_dims(dset, consistency_test = False):
+    vars_to_drop = []
     for var_n in dset.variables:
         if 'DimensionNames' in dset[var_n].attrs.keys():
             dim_names_new = dset[var_n].attrs['DimensionNames'].replace(
                 ' ','').split(',')
-            dim_names_old = list(dset[var_n].dims)            
-            for dim_n_old, dim_n_new in zip(dim_names_old, dim_names_new):                
-                if dim_n_old != dim_n_new:                    
-                    if not (dim_n_old in dim_set):
-                        dset = dset.rename({dim_n_old: dim_n_new})                                                
-                    else:                        
-                        dset[var_n] = dset[var_n].rename({dim_n_old: dim_n_new}) 
-                        # print('{}: old_dim: {}, new_dim {}'.format(
-                        #     var_n, dim_n_old, dim_n_new ))                        
-                    dim_set.add(dim_n_new)   
-    return dset          
+            dim_names_old = list(dset[var_n].dims) 
+            # check if a list of dims has no repeated entry
+            dim_names_old_set = set(dim_names_old)
+            if len(dim_names_old_set)==len(dim_names_old):
+                swap_dict = {dim_n_old : dim_n_new 
+                    for dim_n_old, dim_n_new in zip(dim_names_old, dim_names_new)
+                    if dim_n_old != dim_n_new}
+                dset[var_n] = dset[var_n].rename(swap_dict)
+            else:
+                if consistency_test:
+                    # print('%s has repeated dim, loaded to memory...' % var_n)
+                    tmp_data = dset[var_n].data
+                    dset[var_n] = (dim_names_new, tmp_data)
+                else:
+                    vars_to_drop.append(var_n)
+    dset = dset.drop(vars_to_drop)
+    return dset
 
-def open_dataset(filename, subgroup = 'NS', read_attrs = True):          
+def open_dataset(filename, subgroup = 'NS', read_attrs = True, consistency_test = False):          
    
     # height = 0.125*(175 - np.arange(176))  
               
-    ncf = netCDF4.Dataset(filename, diskless=True, persist=False, mode='r')  
+    ncf = netCDF4.Dataset(filename, diskless=True, persist=False, mode='r')   # type: ignore 
     attrs = {}   
     if read_attrs:         
         attr_list = ['FileHeader', 'FileInfo', 'InputRecord', 'JAXAInfo',
@@ -52,18 +59,19 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True):
                             v = float(v)
                         attrs[k] = v           
     
-    all_dims = set()
+   
     if subgroup in list(ncf.groups.keys()):
         nch = ncf.groups.get(subgroup)
-        dset0 = xr.open_dataset(xr.backends.NetCDF4DataStore(nch))         
-        dset0 = _rename_dims(dset0, all_dims, )
+        dset0 = xr.open_dataset(xr.backends.NetCDF4DataStore(nch))    # type: ignore        
+        dset0 = _rename_dims(dset0,  consistency_test = consistency_test)
                           
-        for subsubgroup in nch.groups.keys():    
+        for subsubgroup in nch.groups.keys():  
+            # print(subsubgroup)
             ncg = nch.groups.get(subsubgroup)
             dset1 = xr.open_dataset(xr.backends.NetCDF4DataStore(ncg), 
-                                    decode_timedelta = False,)  
-            dset1 = _rename_dims(dset1, all_dims, )
-            
+                        decode_timedelta = False,)  # type: ignore
+           
+            dset1 = _rename_dims(dset1,  consistency_test = consistency_test)
             if subsubgroup == 'ScanTime':
                 
                 time_vars = ('Year', 'Month', 'DayOfMonth',
@@ -79,11 +87,15 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True):
                 time_dict = {tkey: dset1[tkey].values.astype('int16')
                                  for tkey in time_vars}
                 
+                
+                
                 time_dict['Year'] += -1970
                 time_dict['Month'] += -1
-                time_dict['DayOfMonth'] += -1          
-                dset0['time'] = sum(time_dict[key].astype(dtype_dict[key]) 
-                                    for key in time_vars)
+                time_dict['DayOfMonth'] += -1     
+                
+                time_arr = sum(time_dict[key].astype(dtype_dict[key]) 
+                                    for key in time_vars)   
+                dset0['time'] = (dset1[time_vars[0]].dims, time_arr)
             else:
                 var_list_0 = list(dset0.variables)
                 var_list_1 = list(dset1.variables)
@@ -92,9 +104,11 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True):
                         var_n_mod = '{}_{}'.format(var_n, subsubgroup)                        
                         dset1 = dset1.rename({var_n: var_n_mod})                        
                 dset0 = xr.merge([dset0, dset1])
+        coords = []
+        for tmp_name in ['Longitude', 'Latitude', 'time']:
+            if tmp_name in dset0.variables:
+                coords.append(tmp_name)
                 
-        coords = ['Longitude', 'Latitude', 'time']
-        
          
         dset0 = dset0.set_coords(coords)   
         dset0.attrs = attrs    
@@ -106,13 +120,14 @@ def open_dataset(filename, subgroup = 'NS', read_attrs = True):
         print(list(ncf.groups.keys()))
 
 def open_mfdataset(file_list, subgroup = 'NS', read_attrs = True,
-                   dim = 'nscan'):
+                   dim = 'nscan', consistency_test = False):
     if len(file_list)>0:       
         dsets = []
         for filename in file_list:
             dsets.append(open_dataset(filename, subgroup = subgroup, 
-                             read_attrs = read_attrs))
+                             read_attrs = read_attrs, consistency_test = consistency_test))
         dset = xr.concat(dsets, dim = dim, 
-                         combine_attrs = 'drop_conflicts')
-    return dset
+                         combine_attrs = 'drop_conflicts', 
+                         data_vars = 'all', coords = 'all')
+        return dset
 

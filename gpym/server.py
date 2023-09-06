@@ -23,14 +23,20 @@ class PPS():
         self.dir_out = save_dir
         self.usr = usr
         
-    def get_file_list(self,year, month, day, directory, prod, ver, gran_str):
+    def get_file_list(self,year, month, day, directory, prod,  gran = None, ver = None,):
         ''' Get the file listing for the given year/month/day
         using curl.
         Return list of files (could be empty).
         '''
-        url = self.server + '/gpmallversions/V%s/' % ver + \
-        '/'.join([year, month, day]) + \
-        '/%s/' % directory
+        if ver is None:
+            url = self.server + '/gpmdata/' + \
+            '/'.join([year, month, day]) + \
+            '/%s/' % directory
+        else:
+            ver_str = '{:02d}'.format(ver)
+            url = self.server + '/gpmallversions/V%s/' % ver_str + \
+            '/'.join([year, month, day]) + \
+            '/%s/' % directory
         cmd = 'curl --user %s:%s ' % (self.usr, self.usr) + url
         args = cmd.split()
         process = subprocess.Popen(args,
@@ -40,6 +46,12 @@ class PPS():
         if stdout[0] == '<':
             print ('No GPM files for the given date and product')
             return []
+            
+        if gran is None:
+            gran_str = ''
+        else:
+            gran_str = '{:06d}'.format(gran)
+        
         file_list = stdout.split()
         file_list = [f for f in file_list if ((prod in f) and (gran_str in f))]
         return file_list
@@ -47,7 +59,10 @@ class PPS():
     def fetch_file(self,filename, verbose = False):
         ''' Get the given file from arthurhouhttps using curl. '''
         url = self.server + filename
-        fname = filename.replace('/gpmallversions',self.dir_out)
+        if '/gpmallversions' in filename:
+            fname = filename.replace('/gpmallversions',self.dir_out)
+        if '/gpmdata' in filename:
+            fname = filename.replace('/gpmdata',self.dir_out)
         if os.path.exists(fname):
             if verbose:
                 print('{} exists, skipped...'.format(fname))
@@ -101,33 +116,21 @@ class PPS():
 
         """
         year, month, day = date_str.split('-')
-        if gran is None:
-            gran_str = ''
-        else:
-            gran_str = '{:06d}'.format(gran)
-            
-        ver_str = '{:02d}'.format(ver)
+        
+        
         # loop through the file list and get each file
         file_list = self.get_file_list(year, month, day, directory, 
-                                    prod, ver_str, gran_str, )
+                                    prod,  gran, ver,)
         for filename in file_list:
-            # print(filename)
-            if gran_str in filename:
-                self.fetch_file(filename, verbose = verbose)
+            self.fetch_file(filename, verbose = verbose)
                 
     def list_files(self,date_str = '2015-01-01', directory = 'radar', 
                  prod = '', ver = 7, gran = None, ):
         year, month, day = date_str.split('-')
-        if gran is None:
-            gran_str = ''
-        else:
-            gran_str = '{:06d}'.format(gran)
-            
-        ver_str = '{:02d}'.format(ver)
+        
+       
         # loop through the file list and get each file
         file_list = self.get_file_list(year, month, day, directory, 
-                                    prod, ver_str, gran_str,)
+                                    prod,  gran, ver,)
         for filename in file_list:
-            # print(filename)
-            if gran_str in filename:
-                print(filename)
+            print(filename)

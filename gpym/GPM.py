@@ -17,19 +17,23 @@ class GPM():
     def __setitem__(self, key, value):
         setattr(self, key, value)
     
-    def __init__(self, filename , subgroups = None): 
+    def __init__(self, filename , subgroups = None, consistency_test = False, concat_dim = 'nscan'): 
         self.swaths = []
-        self.open_dataset(filename, subgroups = subgroups)
+        self.open_dataset(filename, subgroups = subgroups, 
+                consistency_test = consistency_test, concat_dim = concat_dim)
               
 
-    def add_subgroup(self, filename, subgroup, concat_dim = 'nscan'):
+    def add_subgroup(self, filename, subgroup, concat_dim = 'nscan',
+        consistency_test = False):
         ### loading radar data     
         if isinstance(filename, str):            
             tmp_ds = io.open_dataset(
-                filename, subgroup = subgroup, read_attrs = True)           
+                filename, subgroup = subgroup, read_attrs = True, 
+                consistency_test = consistency_test)           
         if isinstance(filename, list):
             tmp_ds = io.open_mfdataset(
-                filename, subgroup = subgroup, read_attrs = True) 
+                filename, subgroup = subgroup, read_attrs = True,
+                consistency_test = consistency_test) 
         if not subgroup in dir(self):
             self[subgroup] = tmp_ds
             self.swaths.append(subgroup)
@@ -43,7 +47,8 @@ class GPM():
                     np.arange(self[subgroup]['nscan'].size))
             self[subgroup] =  self[subgroup].set_coords(tmp_cords)
             
-    def open_dataset(self, filename, subgroups=None, concat_dim = 'nscan'):
+    def open_dataset(self, filename, subgroups=None, concat_dim = 'nscan',
+            consistency_test = False):
         if isinstance(filename, str):   
             fn = filename
         if isinstance(filename, list):           
@@ -57,11 +62,14 @@ class GPM():
             f.close()              
         for subgroup in subgroups:
             self.add_subgroup(filename, subgroup = subgroup, 
-                              concat_dim = concat_dim) 
+                              concat_dim = concat_dim,
+                              consistency_test = consistency_test) 
             
-    def add_dataset(self, filename, subgroups=None, concat_dim = 'nscan'):
+    def add_dataset(self, filename, subgroups=None, concat_dim = 'nscan',
+            consistency_test = False):
         self.open_dataset(filename, subgroups = subgroups, 
-                          concat_dim = concat_dim)
+                          concat_dim = concat_dim,
+                          consistency_test = consistency_test)
     
        
         
@@ -83,8 +91,7 @@ class DPR(GPM):
                 dh = 0.25
             else:
                 var_n = None
-            if var_n:     
-                
+            if var_n:
                 height = (self[key][var_n].size - self[key][var_n]-1)*dh
                 # print(var_n)
                 # print(key)
@@ -100,6 +107,7 @@ class DPR(GPM):
                 coords.append('Altitude')  
                 self[key] =  self[key].set_coords(coords)
                 self[key].attrs['range_spacing'] = dh
+            
                 
         ### restricting the NS data to the MS swath
         if 'NS' in methods: 

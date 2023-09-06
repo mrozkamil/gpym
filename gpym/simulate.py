@@ -13,11 +13,7 @@ from scipy.signal import savgol_filter
 import numpy as np
 from . import misc
 
-
-
-
-
-module_path = '/Users/km357/Documents/Python3/gpym/gpym'
+module_path = '/Users/km357/Scripts/Python3/gpym/gpym'
 module_path = os.path.dirname(__file__)
 
         
@@ -46,15 +42,13 @@ class radar_simulator():
         ds_new = ds_new.expand_dims('Alpha_dB')
         ds_new = ds_new.transpose('Dm_dB', 'Sm_p_dB', 'Alpha_dB',
                                   missing_dims='ignore')
-        
-       
-        
         return ds_new
     
     
     
     def __init__(self, get_derivatives = False, 
-                 K_sq = {'Ka': 0.8989, 'Ku': 0.9255}):
+                 K_sq = {'Ka': 0.8989, 'Ku': 0.9255},
+                 vel_type = 'HW10'):
         bands = ['Ku', 'Ka']
         for band in bands:
             print('%s band, |K|^2 = %.3f' % (band, K_sq[band]))
@@ -86,23 +80,27 @@ class radar_simulator():
                             for fn in os.listdir(LUT_dir)
                             if 'Williams' in fn and fn.endswith('.nc')]
                 tmp_list.sort()
+                if hyd == 'ice':
+                    tmp_list = [fn for fn in tmp_list if vel_type in fn]
                 
                 lut_file_names[hyd][band] = tmp_list
                 
 
                 #open LUT files for ice and rain
                 if hyd == 'rain':
-                    self.scat_LUT[hyd][band] = xr.open_mfdataset(
+                    self.scat_LUT[hyd][band] = xr.open_mfdataset( # type: ignore
                         lut_file_names[hyd][band],
                         preprocess = self._prepocess_rain_lut, 
                         concat_dim='T',  combine='nested') # rain
-                    self.scat_LUT[hyd][band] = self.scat_LUT[hyd][band].sortby('T')
+                    self.scat_LUT[hyd][band] = self.scat_LUT[hyd][band].sortby('T') # type: ignore
+                    self.scat_LUT[hyd][band]['RWC_dB'] = 10*np.log10(
+                        self.scat_LUT[hyd][band]['RWC'])
                 if hyd == 'ice':
-                    self.scat_LUT[hyd][band] = xr.open_mfdataset(
+                    self.scat_LUT[hyd][band] = xr.open_mfdataset( # type: ignore
                         lut_file_names[hyd][band],
                         preprocess = self._prepocess_ice_lut, 
                         concat_dim='Alpha_dB',  combine='nested') # ice
-                    self.scat_LUT[hyd][band] = self.scat_LUT[hyd][band].sortby('Alpha_dB')
+                    self.scat_LUT[hyd][band] = self.scat_LUT[hyd][band].sortby('Alpha_dB') # type: ignore
                     self.scat_LUT[hyd][band]['IWC_dB'] = 10*np.log10(
                         self.scat_LUT[hyd][band]['IWC'])
                     
@@ -115,14 +113,14 @@ class radar_simulator():
                 self.scat_LUT[hyd][band]['Z'] += 10*np.log10(
                     self.scat_LUT[hyd][band]['K_sq']/K_sq[band])
                 
-                self.scat_LUT[hyd][band] = self.scat_LUT[hyd][band].load()
+                self.scat_LUT[hyd][band] = self.scat_LUT[hyd][band].load() # type: ignore
                 self.scat_LUT[hyd][band]['k_dB'] = 10*np.log10(
                     self.scat_LUT[hyd][band]['k'])
-                self.scat_LUT[hyd][band]['PR_dB'] = 10*np.log10(
-                    self.scat_LUT[hyd][band]['PR'])
+                # self.scat_LUT[hyd][band]['PR_dB'] = 10*np.log10(
+                #     self.scat_LUT[hyd][band]['PR'])
                 # get LUT variables limits
                 for var_n in ['Dm_dB', 'Sm_p_dB','Alpha_dB', 'T']:
-                    if var_n in self.scat_LUT[hyd][band].coords:
+                    if var_n in self.scat_LUT[hyd][band].coords: # type: ignore
                         self.scat_LUT_lims[hyd][band][var_n] = np.array([
                             self.scat_LUT[hyd][band][var_n].values.min(),
                             self.scat_LUT[hyd][band][var_n].values.max()])
@@ -136,7 +134,7 @@ class radar_simulator():
                 # generate regular grid interpolants 
                 # They are faster than xarray interpolation 
                 # but slower than map_coordinates based on spline approximation
-                for var_n in self.scat_LUT[hyd][band].variables:
+                for var_n in self.scat_LUT[hyd][band].variables: # type: ignore
                     arr = self.scat_LUT[hyd][band][var_n].copy()
                     dims = arr.dims
                     if 'Dm_dB' in dims and 'Sm_p_dB' in dims and (
@@ -158,7 +156,7 @@ class radar_simulator():
                                 expand_dims.remove(ind_dim)
                                 
                                 
-                                Darr_Dx = D_arr/np.expand_dims(D_x, axis=expand_dims)
+                                Darr_Dx = D_arr/np.expand_dims(D_x, axis=expand_dims) # type: ignore
                                 
                                 var_n_deriv = 'd_%s_d_%s' % (var_n, dim)
                                 self.scat_LUT[hyd][band][var_n_deriv] = (dims, Darr_Dx)
@@ -172,22 +170,24 @@ class radar_simulator():
     def __call__(self, hydro = 'rain', var = 'Z', band = 'Ku', 
                  interp_method = 'SPL', order = 1, 
                  **kwargs, ):
-        allowed_kwargs = ['Dm_dB' , 'Sm_p_dB', 'T', 'Alpha_dB','WC_dB']
+        allowed_kwargs = ['Dm_dB' , 'Sm_p_dB', 'T', 'Alpha_dB','PR_dB']
         kwargs_list = list(kwargs.keys())
         for key in kwargs_list:
             if key not in allowed_kwargs:
                 print('%s is not in the list of allowed variables:')
                 print(allowed_kwargs)
                 return
-
+        var_list = ['Dm_dB' , 'Sm_p_dB',]
         if hydro =='rain':
-            var_list = ['Dm_dB' , 'Sm_p_dB', 'T', ]
+            var_list.append('T' )
             if 'T' not in kwargs_list:
                 kwargs['T'] = 283.15*np.ones(kwargs['Dm_dB'].shape)
         elif hydro =='ice':
-            var_list =  ['Dm_dB' , 'Sm_p_dB', 'Alpha_dB',]
+            var_list.append('Alpha_dB' )
             if 'Alpha_dB' not in kwargs_list:
                 kwargs['Alpha_dB'] = -16.*np.ones(kwargs['Dm_dB'].shape)
+        
+        interp_val = np.empty_like(kwargs['Dm_dB'])
                 
         if interp_method == 'RGI':
             X = tuple([kwargs[vn] for vn in var_list])
@@ -203,12 +203,12 @@ class radar_simulator():
                                          coordinates = X, mode = 'nearest',
                                          order = order)
         
-        if var in ['Z', 'k_dB', 'PR_dB', 'IWC_dB']:
-            if 'WC_dB' in kwargs_list:
-               interp_val += kwargs['WC_dB']
-        if var in ['k', 'PR', 'IWC']:
-            if 'WC_dB' in kwargs_list:
-                WC = 10**(0.1*kwargs['WC_dB'])
+        if var in ['Z', 'k_dB', 'RWC_dB', 'IWC_dB']:
+            if 'PR_dB' in kwargs_list:
+               interp_val += kwargs['PR_dB']
+        if var in ['k', 'PR', 'RWC', 'IWC']:
+            if 'PR_dB' in kwargs_list:
+                WC = 10**(0.1*kwargs['PR_dB'])
                 interp_val *= WC
         return interp_val
         
@@ -218,6 +218,7 @@ class radar_simulator():
         Matrosov (2008) "Assessment of Radar Signal Attenuation Caused by 
         the Melting Hydrometeor Layer" 
         """
+        total_ext = np.empty_like(PR)
         if band == 'Ku':
             total_ext = 0.048 * PR**1.05
         elif band == 'Ka':
@@ -227,49 +228,49 @@ class radar_simulator():
     
         
     def simulate_Ze_k(self, 
-            Dm_dB_rain, WC_dB_rain,  flag_rain, 
-            Dm_dB_ice,  WC_dB_ice, Alpha_dB, flag_ice, 
+            Dm_dB_rain, PR_dB_rain, T_rain, flag_rain, 
+            Dm_dB_ice,  PR_dB_ice, Alpha_dB, flag_ice, 
             k_ML = None,  band = 'Ku',):
 
         Ze = np.full(flag_rain.shape, 1e-99)
         spec_att = np.zeros(flag_rain.shape)
             
         Ze_ice = self(Dm_dB = Dm_dB_ice, 
-            WC_dB = WC_dB_ice, Alpha_dB = Alpha_dB,
+            PR_dB = PR_dB_ice, Alpha_dB = Alpha_dB,
             hydro = 'ice', var = 'Z', band = band)
         
         k_ice = self(Dm_dB = Dm_dB_ice, 
-            WC_dB = WC_dB_ice, Alpha_dB = Alpha_dB,
+            PR_dB = PR_dB_ice, Alpha_dB = Alpha_dB,
             hydro = 'ice', var = 'k', band = band)
         
         Ze[flag_ice] += misc.inv_dB(Ze_ice)
-        spec_att[flag_ice] +=k_ice
+        spec_att[flag_ice] += k_ice # type: ignore
         
-        Ze_rain = self(
-            Dm_dB = Dm_dB_rain,  WC_dB = WC_dB_rain, 
+        Ze_rain = self(Dm_dB = Dm_dB_rain,  
+                       PR_dB = PR_dB_rain, T = T_rain,
             hydro = 'rain', var = 'Z', band = band)
-        k_rain = self._simulate(
-            Dm_dB = Dm_dB_rain,  WC_dB = WC_dB_rain, 
+        k_rain = self(Dm_dB = Dm_dB_rain,  
+                      PR_dB = PR_dB_rain, T= T_rain,
             hydro = 'rain', var = 'k', band = band)
         
         Ze[flag_rain] += misc.inv_dB(Ze_rain)
-        spec_att[flag_rain] +=k_rain
+        spec_att[flag_rain] += k_rain # type: ignore
         
         if k_ML is not None:
             spec_att += k_ML
         return misc.dB(Ze), spec_att
     
     def simulate_Zm_PIA(self, 
-            Dm_dB_rain, WC_dB_rain,  flag_rain, 
-            Dm_dB_ice,  WC_dB_ice, Alpha_dB, flag_ice, 
+            Dm_dB_rain, PR_dB_rain, T_rain, flag_rain, 
+            Dm_dB_ice,  PR_dB_ice, Alpha_dB, flag_ice, 
             k_ML = None,  band = 'Ku',
             range_spacing = 0.125, range_axis = 0,
             return_effective = False):
         
         Ze, spec_att = self.simulate_Ze_k(  
-            Dm_dB_rain = Dm_dB_rain, WC_dB_rain = WC_dB_rain,
-            flag_rain = flag_rain, 
-            Dm_dB_ice = Dm_dB_ice,  WC_dB_ice = WC_dB_ice, 
+            Dm_dB_rain = Dm_dB_rain, PR_dB_rain = PR_dB_rain,
+            T_rain = T_rain, flag_rain = flag_rain,
+            Dm_dB_ice = Dm_dB_ice,  PR_dB_ice = PR_dB_ice, 
             Alpha_dB = Alpha_dB, flag_ice = flag_ice, 
             k_ML = k_ML,  band = band,)
         

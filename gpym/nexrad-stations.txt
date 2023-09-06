@@ -1,0 +1,211 @@
+NCDCID   ICAO WBAN  NAME                           COUNTRY              ST COUNTY                         LAT       LON        ELEV   UTC   STNTYPE                                            
+-------- ---- ----- ------------------------------ -------------------- -- ------------------------------ --------- ---------- ------ ----- -------------------------------------------------- 
+30001794 KABR 14929 ABERDEEN                       UNITED STATES        SD BROWN                          45.455833 -98.413333 1383   -6    NEXRAD                                             
+30001795 KABX 03019 ALBUQUERQUE                    UNITED STATES        NM BERNALILLO                     35.149722 -106.82388 5951   -7    NEXRAD                                             
+30001796 KAKQ 93773 NORFOLK RICH                   UNITED STATES        VA SUSSEX                         36.98405  -77.007361 255    -5    NEXRAD                                             
+30001797 KAMA 23047 AMARILLO                       UNITED STATES        TX POTTER                         35.233333 -101.70927 3703   -6    NEXRAD                                             
+30001798 KAMX 12899 MIAMI                          UNITED STATES        FL MIAMI-DADE                     25.611083 -80.412667 111    -5    NEXRAD                                             
+30001799 KAPX 04837 GAYLORD                        UNITED STATES        MI ANTRIM                         44.90635  -84.719533 1561   -5    NEXRAD                                             
+30001800 KARX 94987 LA CROSSE                      UNITED STATES        WI LA CROSSE                      43.822778 -91.191111 1357   -6    NEXRAD                                             
+30001801 KATX 94287 SEATTLE                        UNITED STATES        WA ISLAND                         48.194611 -122.49569 642    -8    NEXRAD                                             
+30001802 KBBX 93240 BEALE AFB                      UNITED STATES        CA BUTTE                          39.495639 -121.63161 221    -8    NEXRAD                                             
+30001807 KBGM 04725 BINGHAMTON                     UNITED STATES        NY BROOME                         42.199694 -75.984722 1703   -5    NEXRAD                                             
+30001808 KBHX 94289 EUREKA                         UNITED STATES        CA HUMBOLDT                       40.498583 -124.29216 2516   -8    NEXRAD                                             
+30001809 KBIS 24011 BISMARCK                       UNITED STATES        ND BURLEIGH                       46.770833 -100.76055 1755   -6    NEXRAD                                             
+30001811 KBLX 94046 BILLINGS                       UNITED STATES        MT YELLOWSTONE                    45.853778 -108.60680 3703   -7    NEXRAD                                             
+30001812 KBMX 53823 BIRMINGHAM                     UNITED STATES        AL SHELBY                         33.172417 -86.770167 759    -6    NEXRAD                                             
+30001813 KBOX 54765 BOSTON                         UNITED STATES        MA BRISTOL                        41.955778 -71.136861 232    -5    NEXRAD                                             
+30001814 KBRO 12919 BROWNSVILLE                    UNITED STATES        TX CAMERON                        25.916    -97.418967 88     -6    NEXRAD                                             
+30001815 KBUF 14733 BUFFALO                        UNITED STATES        NY ERIE                           42.948789 -78.736781 790    -5    NEXRAD                                             
+30001816 KBYX 92804 KEY WEST                       UNITED STATES        FL MONROE                         24.5975   -81.703167 89     -5    NEXRAD                                             
+30001781 KCAE 13883 COLUMBIA                       UNITED STATES        SC LEXINGTON                      33.948722 -81.118278 345    -5    NEXRAD                                             
+30001782 KCBW 94625 HOULTON                        UNITED STATES        ME AROOSTOOK                      46.03925  -67.806431 860    -5    NEXRAD                                             
+30001817 KCBX 04101 BOISE                          UNITED STATES        ID ADA                            43.490217 -116.23603 3172   -7    NEXRAD                                             
+30001783 KCCX 54764 STATE COLLEGE                  UNITED STATES        PA CENTRE                         40.923167 -78.003722 2486   -5    NEXRAD                                             
+30001818 KCLE 14820 CLEVELAND                      UNITED STATES        OH CUYAHOGA                       41.413217 -81.859867 860    -5    NEXRAD                                             
+30001819 KCLX 53845 CHARLESTON                     UNITED STATES        SC BEAUFORT                       32.655528 -81.042194 229    -5    NEXRAD                                             
+30078819 KCRI       ROC FAA REDUNDANT RDA 1        UNITED STATES        OK CLEVELAND                      35.238333 -97.46     1315   -6    NEXRAD                                             
+30001821 KCRP 12924 CORPUS CHRISTI                 UNITED STATES        TX NUECES                         27.784017 -97.51125  142    -6    NEXRAD                                             
+30001822 KCXX 54774 BURLINGTON                     UNITED STATES        VT CHITTENDEN                     44.511    -73.166431 431    -5    NEXRAD                                             
+30001823 KCYS 24018 CHEYENNE                       UNITED STATES        WY LARAMIE                        41.151919 -104.80603 6193   -7    NEXRAD                                             
+30001824 KDAX 93235 SACRAMENTO                     UNITED STATES        CA YOLO                           38.501111 -121.67783 144    -8    NEXRAD                                             
+30001825 KDDC 13985 DODGE CITY                     UNITED STATES        KS FORD                           37.760833 -99.968889 2671   -6    NEXRAD                                             
+30001826 KDFX 22015 LAUGHLIN AFB                   UNITED STATES        TX KINNEY                         29.273139 -100.28033 1196   -6    NEXRAD                                             
+30001827 KDGX       JACKSON BRANDON                UNITED STATES        MS RANKIN                         32.279944 -89.984444 609    -6    NEXRAD                                             
+30001828 KDIX 93771 PHILADELPHIA                   UNITED STATES        NJ BURLINGTON                     39.947089 -74.410731 230    -5    NEXRAD                                             
+30001829 KDLH 14913 DULUTH                         UNITED STATES        MN ST. LOUIS                      46.836944 -92.209722 1542   -6    NEXRAD                                             
+30001830 KDMX 94984 DES MOINES                     UNITED STATES        IA POLK                           41.7312   -93.722869 1095   -6    NEXRAD                                             
+30001831 KDOX 93770 DOVER AFB                      UNITED STATES        DE SUSSEX                         38.825767 -75.440117 164    -5    NEXRAD                                             
+30001832 KDTX 04830 DETROIT                        UNITED STATES        MI OAKLAND                        42.7      -83.471667 1216   -5    NEXRAD                                             
+30001833 KDVN 94982 DAVENPORT                      UNITED STATES        IA SCOTT                          41.611667 -90.580833 851    -6    NEXRAD                                             
+30001834 KDYX 03987 DYESS AFB                      UNITED STATES        TX SHACKELFORD                    32.5385   -99.254333 1582   -6    NEXRAD                                             
+30001835 KEAX 03983 KANSAS CITY                    UNITED STATES        MO CASS                           38.81025  -94.264472 1092   -6    NEXRAD                                             
+30001836 KEMX 53112 TUCSON                         UNITED STATES        AZ PIMA                           31.89365  -110.63025 5319   -7    NEXRAD                                             
+30001837 KENX 54766 ALBANY                         UNITED STATES        NY ALBANY                         42.586556 -74.064083 1935   -5    NEXRAD                                             
+30001838 KEOX 53851 FORT RUCKER                    UNITED STATES        AL DALE                           31.460556 -85.459389 537    -6    NEXRAD                                             
+30001839 KEPZ 03020 EL PASO                        UNITED STATES        NM DONA ANA                       31.873056 -106.698   4218   -7    NEXRAD                                             
+30001841 KESX 53110 LAS VEGAS                      UNITED STATES        NV CLARK                          35.70135  -114.89165 4948   -8    NEXRAD                                             
+30001842 KEVX 53825 EGLIN AFB                      UNITED STATES        FL WALTON                         30.565033 -85.921667 221    -5    NEXRAD                                             
+30001843 KEWX 12971 AUSTIN SAN ANTONIO             UNITED STATES        TX COMAL                          29.704056 -98.028611 767    -6    NEXRAD                                             
+30001943 KEYX 53114 EDWARDS                        UNITED STATES        CA SANTA BARBARA                  35.09785  -117.56075 2873   -8    NEXRAD                                             
+30001844 KFCX 53831 ROANOKE                        UNITED STATES        VA FLOYD                          37.0244   -80.273969 2965   -5    NEXRAD                                             
+30001845 KFDR 03981 ALTUS AFB                      UNITED STATES        OK TILLMAN                        34.362194 -98.976667 1315   -6    NEXRAD                                             
+30001846 KFDX 03022 CANNON AFB                     UNITED STATES        NM CURRY                          34.634167 -103.61888 4698   -7    NEXRAD                                             
+30001847 KFFC 53819 ATLANTA                        UNITED STATES        GA FAYETTE                        33.36355  -84.56595  972    -5    NEXRAD                                             
+30001944 KFSD 14944 SIOUX FALLS                    UNITED STATES        SD MINNEHAHA                      43.587778 -96.729444 1495   -6    NEXRAD                                             
+30001848 KFSX 53113 FLAGSTAFF                      UNITED STATES        AZ COCONINO                       34.574333 -111.19844 7514   -7    NEXRAD                                             
+30001849 KFTG 03018 DENVER FRONT RANGE AP          UNITED STATES        CO ARAPAHOE                       39.786639 -104.54580 5611   -7    NEXRAD                                             
+30001850 KFWS 03985 DALLAS                         UNITED STATES        TX TARRANT                        32.573    -97.30315  777    -6    NEXRAD                                             
+30001851 KGGW 94008 GLASGOW                        UNITED STATES        MT VALLEY                         48.206361 -106.62469 2384   -7    NEXRAD                                             
+30001852 KGJX 03025 GRAND JUNCTION                 UNITED STATES        CO MESA                           39.062169 -108.21376 10101  -7    NEXRAD                                             
+30001853 KGLD 23065 GOODLAND                       UNITED STATES        KS SHERMAN                        39.366944 -101.70027 3716   -7    NEXRAD                                             
+30001854 KGRB 14898 GREEN BAY                      UNITED STATES        WI BROWN                          44.498633 -88.111111 823    -6    NEXRAD                                             
+30001855 KGRK 03992 FORT HOOD                      UNITED STATES        TX BELL                           30.721833 -97.382944 603    -6    NEXRAD                                             
+30001856 KGRR 94860 GRAND RAPIDS                   UNITED STATES        MI KENT                           42.893889 -85.544889 875    -5    NEXRAD                                             
+30001857 KGSP 03870 GREER                          UNITED STATES        SC SPARTANBURG                    34.883306 -82.219833 1069   -5    NEXRAD                                             
+30001858 KGWX 53837 COLUMBUS AFB                   UNITED STATES        MS MONROE                         33.896917 -88.329194 590    -6    NEXRAD                                             
+30001859 KGYX 54762 PORTLAND                       UNITED STATES        ME CUMBERLAND                     43.891306 -70.256361 474    -5    NEXRAD                                             
+30001945 KHDX 03023 HOLLOMAN AFB                   UNITED STATES        NM DONA ANA                       33.077    -106.12003 4270   -7    NEXRAD                                             
+30001860 KHGX 03980 HOUSTON                        UNITED STATES        TX GALVESTON                      29.4719   -95.078733 115    -6    NEXRAD                                             
+30001861 KHNX 53111 SAN JOAQUIN VALLEY             UNITED STATES        CA KINGS                          36.314181 -119.63213 340    -8    NEXRAD                                             
+30001862 KHPX 53839 FORT CAMPBELL                  UNITED STATES        KY TODD                           36.736972 -87.285583 613    -6    NEXRAD                                             
+30001863 KHTX 53857 HUNTSVILLE                     UNITED STATES        AL JACKSON                        34.930556 -86.083611 1859   -6    NEXRAD                                             
+30001864 KICT 03928 WICHITA                        UNITED STATES        KS SEDGWICK                       37.654444 -97.443056 1400   -6    NEXRAD                                             
+30001865 KICX 53118 CEDAR CITY                     UNITED STATES        UT IRON                           37.59105  -112.86218 10757  -7    NEXRAD                                             
+30001866 KILN 13841 CINCINNATI                     UNITED STATES        OH CLINTON                        39.420483 -83.82145  1170   -5    NEXRAD                                             
+30001867 KILX 04833 LINCOLN                        UNITED STATES        IL LOGAN                          40.1505   -89.336792 731    -6    NEXRAD                                             
+30001868 KIND 93819 INDIANAPOLIS                   UNITED STATES        IN MARION                         39.7075   -86.280278 887    -5    NEXRAD                                             
+30001869 KINX 03984 TULSA                          UNITED STATES        OK ROGERS                         36.175131 -95.564161 749    -6    NEXRAD                                             
+30001870 KIWA 23104 PHOENIX                        UNITED STATES        AZ MARICOPA                       33.289233 -111.66991 1426   -7    NEXRAD                                             
+30001871 KIWX 04844 FORT WAYNE                     UNITED STATES        IN KOSCIUSKO                      41.358611 -85.7      1056   -5    NEXRAD                                             
+30001872 KJAX 13889 JACKSONVILLE                   UNITED STATES        FL DUVAL                          30.484633 -81.7019   160    -5    NEXRAD                                             
+30001873 KJGX 53824 ROBINS AFB                     UNITED STATES        GA TWIGGS                         32.675683 -83.350833 618    -5    NEXRAD                                             
+30001874 KJKL 03889 JACKSON                        UNITED STATES        KY BREATHITT                      37.590833 -83.313056 1461   -5    NEXRAD                                             
+30001875 KLBB 23042 LUBBOCK                        UNITED STATES        TX LUBBOCK                        33.654139 -101.81416 3378   -6    NEXRAD                                             
+30001876 KLCH 03937 LAKE CHARLES                   UNITED STATES        LA CALCASIEU                      30.125306 -93.215889 137    -6    NEXRAD                                             
+30078818 KLGX       LANGLEY HILL NW WASHINGTON     UNITED STATES        WA GRAYS HARBOR                   47.116944 -124.10666 366    -8    NEXRAD                                             
+30001877 KLIX 53813 NEW ORLEANS                    UNITED STATES        LA ST. TAMMANY                    30.336667 -89.825417 179    -6    NEXRAD                                             
+30001878 KLNX 94049 NORTH PLATTE                   UNITED STATES        NE LOGAN                          41.957944 -100.57622 3113   -6    NEXRAD                                             
+30001879 KLOT 04831 CHICAGO                        UNITED STATES        IL WILL                           41.604444 -88.084444 760    -6    NEXRAD                                             
+30001880 KLRX 04108 ELKO                           UNITED STATES        NV LANDER                         40.73955  -116.8027  6895   -8    NEXRAD                                             
+30001881 KLSX 03982 ST LOUIS                       UNITED STATES        MO ST. CHARLES                    38.698611 -90.682778 722    -6    NEXRAD                                             
+30001882 KLTX 93774 WILMINGTON                     UNITED STATES        NC BRUNSWICK                      33.98915  -78.429108 145    -5    NEXRAD                                             
+30001883 KLVX 53827 LOUISVILLE                     UNITED STATES        KY HARDIN                         37.975278 -85.943889 833    -5    NEXRAD                                             
+30001884 KLWX 93767 STERLING                       UNITED STATES        VA LOUDOUN                        38.976111 -77.4875   404    -5    NEXRAD                                             
+30001885 KLZK 03952 LITTLE ROCK                    UNITED STATES        AR PULASKI                        34.8365   -92.262194 649    -6    NEXRAD                                             
+30001886 KMAF 23023 MIDLAND ODESSA                 UNITED STATES        TX MIDLAND                        31.943461 -102.18925 2962   -6    NEXRAD                                             
+30001887 KMAX 94296 MEDFORD                        UNITED STATES        OR JACKSON                        42.081169 -122.71736 7561   -8    NEXRAD                                             
+30001888 KMBX 94048 MINOT AFB                      UNITED STATES        ND MCHENRY                        48.393056 -100.86444 1590   -6    NEXRAD                                             
+30001889 KMHX 93768 MOREHEAD CITY                  UNITED STATES        NC CARTERET                       34.775908 -76.876189 145    -5    NEXRAD                                             
+30001890 KMKX 04834 MILWAUKEE                      UNITED STATES        WI WAUKESHA                       42.9679   -88.550667 1023   -6    NEXRAD                                             
+30001891 KMLB 12838 MELBOURNE                      UNITED STATES        FL BREVARD                        28.113194 -80.654083 149    -5    NEXRAD                                             
+30001892 KMOB 13894 MOBILE                         UNITED STATES        AL MOBILE                         30.679444 -88.24     289    -6    NEXRAD                                             
+30001893 KMPX 94983 MINNEAPOLIS                    UNITED STATES        MN CARVER                         44.848889 -93.565528 1101   -6    NEXRAD                                             
+30001894 KMQT 94850 MARQUETTE                      UNITED STATES        MI MARQUETTE                      46.531111 -87.548333 1525   -5    NEXRAD                                             
+30001895 KMRX 53832 KNOXVILLE                      UNITED STATES        TN HAMBLEN                        36.168611 -83.401944 1434   -5    NEXRAD                                             
+30001896 KMSX 04103 MISSOULA                       UNITED STATES        MT MISSOULA                       47.041    -113.98622 7978   -7    NEXRAD                                             
+30001897 KMTX 04104 SALT LAKE CITY                 UNITED STATES        UT SALT LAKE                      41.262778 -112.44777 6594   -7    NEXRAD                                             
+30001898 KMUX 93236 SAN FRANCISCO                  UNITED STATES        CA SANTA CLARA                    37.155222 -121.89844 3550   -8    NEXRAD                                             
+30001899 KMVX 94986 GRAND FORKS                    UNITED STATES        ND TRAILL                         47.527778 -97.325556 1083   -6    NEXRAD                                             
+30001900 KMXX 53826 MAXWELL AFB                    UNITED STATES        AL TALLAPOOSA                     32.53665  -85.78975  560    -6    NEXRAD                                             
+30001901 KNKX 53115 SAN DIEGO                      UNITED STATES        CA SAN DIEGO                      32.919017 -117.0418  1052   -8    NEXRAD                                             
+30001902 KNQA 93839 MEMPHIS                        UNITED STATES        TN SHELBY                         35.344722 -89.873333 435    -6    NEXRAD                                             
+30001903 KOAX 94980 OMAHA                          UNITED STATES        NE DOUGLAS                        41.320369 -96.366819 1262   -6    NEXRAD                                             
+30001904 KOHX 53833 NASHVILLE                      UNITED STATES        TN WILSON                         36.247222 -86.5625   676    -5    NEXRAD                                             
+30001905 KOKX 94703 NEW YORK CITY                  UNITED STATES        NY SUFFOLK                        40.865528 -72.863917 199    -5    NEXRAD                                             
+30001906 KOTX 04106 SPOKANE                        UNITED STATES        WA SPOKANE                        47.680417 -117.62677 2449   -8    NEXRAD                                             
+30126015 KOUN       NORMAN NSSL                    UNITED STATES        OK CLEVELAND                      35.236058 -97.46235  1284   -6    NEXRAD                                             
+30001907 KPAH 03816 PADUCAH                        UNITED STATES        KY MCCRACKEN                      37.068333 -88.771944 506    -6    NEXRAD                                             
+30001908 KPBZ 04832 PITTSBURGH                     UNITED STATES        PA ALLEGHENY                      40.531717 -80.217967 1266   -5    NEXRAD                                             
+30001909 KPDT 24155 PENDLETON                      UNITED STATES        OR UMATILLA                       45.69065  -118.85293 1580   -8    NEXRAD                                             
+30001910 KPOE 03993 FORT POLK                      UNITED STATES        LA VERNON                         31.155278 -92.976111 473    -6    NEXRAD                                             
+30001911 KPUX 03021 PUEBLO                         UNITED STATES        CO PUEBLO                         38.45955  -104.18135 5363   -7    NEXRAD                                             
+30001912 KRAX 93772 RALEIGH DURHAM                 UNITED STATES        NC WAKE                           35.665519 -78.48975  462    -5    NEXRAD                                             
+30001913 KRGX 53104 RENO                           UNITED STATES        NV WASHOE                         39.754056 -119.46202 8396   -8    NEXRAD                                             
+30001914 KRIW 24061 RIVERTON                       UNITED STATES        WY FREMONT                        43.066089 -108.4773  5633   -7    NEXRAD                                             
+30001915 KRLX 53834 CHARLESTON                     UNITED STATES        WV KANAWHA                        38.311111 -81.722778 1213   -5    NEXRAD                                             
+30001916 KRTX 94288 PORTLAND                       UNITED STATES        OR WASHINGTON                     45.715039 -122.965   1728   -8    NEXRAD                                             
+30001917 KSFX 04107 POCATELLO                      UNITED STATES        ID BINGHAM                        43.1056   -112.68613 4539   -7    NEXRAD                                             
+30001918 KSGF 13995 SPRINGFIELD                    UNITED STATES        MO GREENE                         37.235239 -93.400419 1375   -6    NEXRAD                                             
+30001920 KSHV 13957 SHREVEPORT                     UNITED STATES        LA CADDO                          32.450833 -93.84125  387    -6    NEXRAD                                             
+30001921 KSJT 23034 SAN ANGELO                     UNITED STATES        TX TOM GREEN                      31.371278 -100.4925  2004   -6    NEXRAD                                             
+30001922 KSOX 53117 SANTA ANA MOUNTAINS            UNITED STATES        CA ORANGE                         33.817733 -117.636   3106   -8    NEXRAD                                             
+30001948 KSRX 53906 FORT SMITH                     UNITED STATES        AR SEBASTIAN                      35.290417 -94.361889 737    -6    NEXRAD                                             
+30001923 KTBW 92801 TAMPA                          UNITED STATES        FL HILLSBOROUGH                   27.7055   -82.401778 122    -5    NEXRAD                                             
+30001925 KTFX 04102 GREAT FALLS                    UNITED STATES        MT CASCADE                        47.459583 -111.38533 3805   -7    NEXRAD                                             
+30001924 KTLH 93805 TALLAHASSEE                    UNITED STATES        FL LEON                           30.397583 -84.328944 177    -5    NEXRAD                                             
+30001926 KTLX 03979 OKLAHOMA CITY                  UNITED STATES        OK OKLAHOMA                       35.333361 -97.277761 1278   -6    NEXRAD                                             
+30001927 KTWX 03986 TOPEKA                         UNITED STATES        KS WABAUNSEE                      38.99695  -96.23255  1415   -6    NEXRAD                                             
+30001946 KTYX 54776 FORT DRUM                      UNITED STATES        NY LEWIS                          43.755694 -75.679861 1960   -5    NEXRAD                                             
+30001928 KUDX 94047 RAPID CITY                     UNITED STATES        SD PENNINGTON                     44.124722 -102.83    3195   -6    NEXRAD                                             
+30001929 KUEX 94981 HASTINGS                       UNITED STATES        NE WEBSTER                        40.320833 -98.441944 2057   -6    NEXRAD                                             
+30001947 KVAX 53856 MOODY AFB                      UNITED STATES        GA LANIER                         30.890278 -83.001806 330    -5    NEXRAD                                             
+30001930 KVBX 93234 VANDENBERG AFB                 UNITED STATES        CA SANTA BARBARA                  34.83855  -120.39791 1354   -8    NEXRAD                                             
+30001931 KVNX 03995 VANCE AFB                      UNITED STATES        OK ALFALFA                        36.740617 -98.127717 1258   -6    NEXRAD                                             
+30001932 KVTX 53101 LOS ANGELES                    UNITED STATES        CA VENTURA                        34.412017 -119.17875 2807   -8    NEXRAD                                             
+30001609 KVWX 63845 EVANSVILLE                     UNITED STATES        IN GIBSON                         38.26025  -87.724528 625    -6    NEXRAD                                             
+30001934 KYUX 53116 YUMA                           UNITED STATES        AZ PIMA                           32.495281 -114.65671 239    -7    NEXRAD                                             
+30001938 LPLA 13201 LAJES AB                       AZORES                                                 38.73028  -27.32167  3334   -1    NEXRAD                                             
+30001939 PABC       BETHEL FAA                     UNITED STATES        AK BETHEL                         60.791944 -161.87638 193    -9    NEXRAD                                             
+30001940 PACG 25361 SITKA                          UNITED STATES        AK SITKA BOROUGH                  56.852778 -135.52916 272    -9    NEXRAD                                             
+30001941 PAEC 26641 NOME                           UNITED STATES        AK NOME                           64.511389 -165.295   90     -9    NEXRAD                                             
+30001942 PAHG 26548 ANCHORAGE                      UNITED STATES        AK KENAI PENINSULA BOROUGH        60.725914 -151.35146 356    -9    NEXRAD                                             
+30001958 PAIH 25404 MIDDLETON ISLAND               UNITED STATES        AK CHUGACH CENSUS AREA            59.460767 -146.30344 132    -9    NEXRAD                                             
+30001959 PAKC 25503 KING SALMON                    UNITED STATES        AK BRISTOL BAY BOROUGH            58.679444 -156.62944 144    -9    NEXRAD                                             
+30001960 PAPD 24690 FAIRBANKS                      UNITED STATES        AK FAIRBANKS NORTH STAR BOROUGH   65.035114 -147.50143 2707   -9    NEXRAD                                             
+30001961 PGUA 41417 ANDERSEN AFB AGANA             GUAM                 GU GUAM                           13.455833 144.811111 386    -8    NEXRAD                                             
+30001962 PHKI 22548 SOUTH KAUAI                    UNITED STATES        HI KAUAI                          21.893889 -159.5525  340    -10   NEXRAD                                             
+30001963 PHKM 22550 KAMUELA                        UNITED STATES        HI HAWAII                         20.125278 -155.77777 3966   -10   NEXRAD                                             
+30001964 PHMO 22547 MOLOKAI                        UNITED STATES        HI HAWAII                         21.132778 -157.18027 1444   -8    NEXRAD                                             
+30001965 PHWA 22513 SOUTH SHORE                    UNITED STATES        HI HAWAII                         19.095    -155.56888 1461   -10   NEXRAD                                             
+30001967 RKJK 43219 KUNSAN                         KOREA, SOUTH                                           35.924167 126.622222 192    9     NEXRAD                                             
+30001968 RKSG 43216 CAMP HUMPHREYS                 KOREA, SOUTH                                           37.207569 127.285561 1521   9     NEXRAD                                             
+30001969 RODN 42219 KADENA                         JAPAN                                                  26.3078   127.903469 412    9     NEXRAD                                             
+30112653 TADW       ANDREWS AFB                    UNITED STATES        MD PRINCE GEORGE'S                38.695    -76.845    344    -5    TDWR                                               
+30112655 TATL       ATLANTA                        UNITED STATES        GA WEBSTER                        33.646944 -84.261944 1076   -5    TDWR                                               
+30112680 TBNA       NASHVILLE                      UNITED STATES        TN WILLIAMSON                     35.98     -86.661944 817    -6    TDWR                                               
+30112656 TBOS       BOSTON                         UNITED STATES        MA NORFOLK                        42.158056 -70.933056 262    -5    TDWR                                               
+30112657 TBWI       BALTIMORE WASHINGTON           UNITED STATES        MD ANNE ARUNDEL                   39.09     -76.63     299    -5    TDWR                                               
+30112658 TCLT       CHARLOTTE                      UNITED STATES        NC MECKLENBURG                    35.336944 -80.885    869    -5    TDWR                                               
+30112662 TCMH       COLUMBUS                       UNITED STATES        OH LICKING                        40.006111 -82.715    1148   -5    TDWR                                               
+30112663 TCVG       COVINGTON                      UNITED STATES        KY KENTON                         38.898056 -84.58     1053   -5    TDWR                                               
+30112664 TDAL       DALLAS LOVE FIELD              UNITED STATES        TX DALLAS                         32.926111 -96.968056 623    -6    TDWR                                               
+30112666 TDAY       DAYTON                         UNITED STATES        OH MIAMI                          40.021944 -84.123056 1020   -5    TDWR                                               
+30112699 TDCA       WASHINGTON NATIONAL            UNITED STATES        MD PRINCE GEORGE'S                38.758889 -76.961944 344    -5    TDWR                                               
+30112667 TDEN       DENVER                         UNITED STATES        CO ARAPAHOE                       39.728056 -104.52611 5702   -7    TDWR                                               
+30112665 TDFW       DALLAS FT WORTH                UNITED STATES        TX DENTON                         33.065    -96.918056 584    -6    TDWR                                               
+30112668 TDTW       DETROIT                        UNITED STATES        MI WAYNE                          42.111111 -83.515    771    -5    TDWR                                               
+30112683 TEWR       NEWARK                         UNITED STATES        NJ UNION                          40.593056 -74.27     135    -5    TDWR                                               
+30112670 TFLL       FT LAUDERDALE                  UNITED STATES        FL BROWARD                        26.143056 -80.343889 121    -5    TDWR                                               
+30112671 THOU       HOUSTON HOBBY                  UNITED STATES        TX BRAZORIA                       29.516111 -95.241944 118    -6    TDWR                                               
+30112697 TIAD       WASHINGTON DULLES              UNITED STATES        VA LOUDOUN                        39.083889 -77.528889 472    -5    TDWR                                               
+30112672 TIAH       HOUSTON INTERNATIONAL          UNITED STATES        TX HARRIS                         30.065    -95.566944 253    -6    TDWR                                               
+30112701 TICH       WICHITA                        UNITED STATES        KS SEDGWICK                       37.506944 -97.436944 1352   -6    TDWR                                               
+30112673 TIDS       INDIANAPOLIS                   UNITED STATES        IN HENDRICKS                      39.636944 -86.436111 846    -5    TDWR                                               
+30110220 TJBQ       RAFAEL HERNANDEZ AIRPORT       UNITED STATES        PR AGUADILLA                      18.485    -67.143    280    -4    TDWR                                               
+30112682 TJFK       NEW YORK CITY JFK              UNITED STATES        NY KINGS                          40.588889 -73.881111 112    -5    TDWR                                               
+30110221 TJRV       JOSE APONTE DE LA TORRE AIRPOR UNITED STATES        PR CEIBA                          18.256    -65.637    50     -4    TDWR                                               
+30001966 TJUA 11655 SAN JUAN                       UNITED STATES        PR SAN JUAN                       18.115667 -66.078167 2958   -4    NEXRAD                                             
+30112675 TLAS       LAS VEGAS                      UNITED STATES        NV CLARK                          36.143889 -115.00694 2057   -8    TDWR                                               
+30112661 TLVE       CLEVELAND                      UNITED STATES        OH LORAIN                         41.29     -82.008056 932    -5    TDWR                                               
+30112674 TMCI       KANSAS CITY                    UNITED STATES        MO PLATTE                         39.498056 -94.741944 1089   -6    TDWR                                               
+30112685 TMCO       ORLANDO INTERNATIONAL          UNITED STATES        FL ORANGE                         28.343889 -81.326111 171    -5    TDWR                                               
+30112659 TMDW       CHICAGO MIDWAY                 UNITED STATES        IL COOK                           41.651111 -87.73     764    -6    TDWR                                               
+30112686 TMEM       MEMPHIS                        UNITED STATES        MS DESOTO                         34.896111 -89.993056 482    -6    TDWR                                               
+30112677 TMIA       MIAMI                          UNITED STATES        FL MIAMI-DADE                     25.758056 -80.491111 125    -5    TDWR                                               
+30112678 TMKE       MILWAUKEE                      UNITED STATES        WI RACINE                         42.818889 -88.046111 932    -6    TDWR                                               
+30112679 TMSP       MINNEAPOLIS                    UNITED STATES        MN WASHINGTON                     44.871111 -92.933056 1122   -6    TDWR                                               
+30112681 TMSY       NEW ORLEANS                    UNITED STATES        LA ST. CHARLES                    30.021944 -90.403056 98     -6    TDWR                                               
+30112684 TOKC       NORMAN WFO                     UNITED STATES        OK CLEVELAND                      35.276111 -97.51     1309   -6    TDWR                                               
+30112660 TORD       CHICAGO OHARE                  UNITED STATES        IL COOK                           41.796944 -87.858056 745    -6    TDWR                                               
+30112700 TPBI       WEST PALM BEACH                UNITED STATES        FL PALM BEACH                     26.688056 -80.273056 135    -5    TDWR                                               
+30112688 TPHL       PHILADELPHIA                   UNITED STATES        NJ CAMDEN                         39.948889 -75.068889 154    -5    TDWR                                               
+30112689 TPHX       PHOENIX                        UNITED STATES        AZ MARICOPA                       33.421111 -112.16305 1089   -7    TDWR                                               
+30112690 TPIT       PITTSBURGH                     UNITED STATES        PA BEAVER                         40.501111 -80.486111 1385   -5    TDWR                                               
+30112691 TRDU       RALEIGH                        UNITED STATES        NC WAKE                           36.001944 -78.696944 515    -5    TDWR                                               
+30112676 TSDF       LOUISVILLE                     UNITED STATES        KY BULLITT                        38.046111 -85.61     732    -5    TDWR                                               
+30112693 TSJU       SAN JUAN                       UNITED STATES        PR TOA BAJA                       18.473889 -66.178889 157    -4    TDWR                                               
+30112692 TSLC       SALT LAKE CITY                 UNITED STATES        UT DAVIS                          40.966944 -111.93    4295   -7    TDWR                                               
+30112694 TSTL       ST LOUIS                       UNITED STATES        MO ST. CHARLES                    38.805    -90.488889 646    -6    TDWR                                               
+30112695 TTPA       TAMPA                          UNITED STATES        FL HILLSBOROUGH                   27.86     -82.518056 92     -5    TDWR                                               
+30112696 TTUL       TULSA                          UNITED STATES        OK TULSA                          36.071111 -95.826944 823    -6    TDWR                                               

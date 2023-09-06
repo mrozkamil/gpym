@@ -19,7 +19,7 @@ band_range_dict = {
     'C': (4.,8.),
     'X': (8.,12.),
     'Ku': (12., 18.),
-    'K': (18., 27.), 
+    'K': (18., 27.),
     'Ka': (27., 40.),
     'V': (40.,75.),
     'W': (75., 110.),
@@ -36,19 +36,19 @@ def band_range(band):
     return band_range_dict[band]
 
 def band_name(freq_GHz):
-    if ((freq_GHz<band_range_dict['HF'][0]) or 
+    if ((freq_GHz<band_range_dict['HF'][0]) or
         (freq_GHz>band_range_dict['G'][1])):
         print ('Provided frequency is outside of the considered range (3 MHz to 300 GHz)')
         return
     y_arr = np.arange(len(band_range_dict))
     x_arr = np.array([fr[0] for fr in band_range_dict.values()])
     bands = list(band_range_dict.keys())
-    tmp_interp = interp1d(x_arr, y_arr, kind = 'previous', 
+    tmp_interp = interp1d(x_arr, y_arr, kind = 'previous',
                           fill_value="extrapolate")
     index = tmp_interp(freq_GHz)
-    
+
     return bands[int(index)]
-  
+
 def dB(x):
     return 10*np.log10(x)
 
@@ -61,5 +61,5 @@ def map_real_2_interval( x, yl = 0., yh = 1.):
 def map_interval_2_real( y, yl = 0., yh = 1.):
     y = np.minimum(np.maximum(y,yl),yh)
     return logit((y-yl)/(yh-yl))
-        
-    
+
+
