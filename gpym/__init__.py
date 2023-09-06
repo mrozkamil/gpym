@@ -8,6 +8,7 @@ from . import io
 # from . import env
 from . import GPM
 from . import misc
+from . import era5
 # from . import vis
 # from . import refractive
 from . import simulate
