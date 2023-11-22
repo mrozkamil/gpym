@@ -674,7 +674,7 @@ class OE():
         if ind_ice.size>0:
             ii = ind_ice[0]-1
             while (Zm_v['Ku'][ii]>9.5) and (ii>=0):
-                print(ii)
+                # print(ii)
                 flag_hydro['ice'][ii] = True
                 ii += -1
                 
