@@ -594,7 +594,7 @@ class OE():
         
     def retrieve_PC_1D(self, dpr_obj, nscan, nrayMS, 
                         make_plot = False, fig_dir = home,                          
-                        method = 'SLSQP', retr_resol_ice = 0.5, retr_resol_rain = 1.5, 
+                        method = 'SLSQP', retr_resol_ice = 0.4, retr_resol_rain = 1.6, 
                         retr_resol_scale_x1 = 3., maxiter = 30, ):
         
         var_3D_list = [ 'Sm_dB', 'Dm_dB', 'PR_dB', 'WC_dB', 
@@ -706,9 +706,9 @@ class OE():
         for lev_height, vert_res in zip([FL_height, alt_v[0]], 
                 [retr_resol_rain, retr_resol_ice]):
         
-            while nodes_pc0[-1]<lev_height-vert_res/2*3:
+            while nodes_pc0[-1]<lev_height:
                 nodes_pc0.append(nodes_pc0[-1]+vert_res)
-            while nodes_pc1[-1]<lev_height-vert_res/2*3*retr_resol_scale_x1:
+            while nodes_pc1[-1]<lev_height:
                 nodes_pc1.append(nodes_pc1[-1]+vert_res*retr_resol_scale_x1)
         
         if nodes_pc0[-1]>=alt_v[0]:
@@ -816,7 +816,7 @@ class OE():
         
         pc0_fg = self._fg_pc0( Ze_v = {band: Ze_v[band]
                 for band in bands}, flag_hydro = flag_hydro)
-        pc0_fg = np.maximum(-10., pc0_fg)
+        pc0_fg = np.maximum(-5., pc0_fg)
         pc0_fg_rep = spl_repr['PC0'].transform(pc0_fg[flag_any_hydro])  
         pc0 = spl_repr['PC0'].inverse_transform(pc0_fg_rep)        
 
@@ -899,22 +899,35 @@ class OE():
             
         
         weight_PC = np.ones(nx)
-        weight_PC[Zm_v['Ka'][flag_any_hydro]<18] = 0.
+        # weight_PC[Zm_v['Ka'][flag_any_hydro]<18] = 0.
         weight_PC[Zm_v['Ku'][flag_any_hydro]<10] = 0.
-        R_ap_inv = np.concatenate([weight_PC/tmp_var for tmp_var in self.ScaledPCA.explained_variance_] + 
+        R_ap_inv = np.concatenate([weight_PC/(tmp_var*sc_fact) 
+                            for (tmp_var, sc_fact) in zip(self.ScaledPCA.explained_variance_, [4.,1.,1.])] + 
                             [np.array([1/Alpha_dB_var,]), 1/BB_ext_dB_var])
         
         # weight of a-priori PCs, more weight in rain 
-        w_max = 6.**2.
-        w = np.ones(nx)*w_max
-        w[fl_hydro['ice']] = 1.
+        w_max = 4.**2.
+        w_min = 1.**2.
+
+
+        w = np.ones(nx)
+        w[fl_hydro['ice']] = 0.
         l_melt = fl_hydro['melt'].sum()
         w[fl_hydro['melt']] = np.interp(
-            np.arange(l_melt), [0,l_melt], [1., w_max] )
+            np.arange(l_melt), [0,l_melt], [0., 1.] )
 
-        # T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w)*0 # measures deviation from a constant value 
-        T2_mat = self._Tikhonov_matrix(n = nx, diff = 2)*4.  # measures deviation from a linear change 
-        weight_Tikhonov = T2_mat
+        w1 = w*(w_max-w_min)*4.+w_min
+        w2 = (1.- w)*(w_max-w_min)+w_min
+
+        # w = np.ones(nx)*w_max
+        # w[fl_hydro['ice']] = 1.
+        # l_melt = fl_hydro['melt'].sum()
+        # w[fl_hydro['melt']] = np.interp(
+        #     np.arange(l_melt), [0,l_melt], [1., w_max] )
+
+        T1_mat = self._Tikhonov_matrix(n = nx, diff = 1, w = w1) # measures deviation from a constant value 
+        T2_mat = self._Tikhonov_matrix(n = nx, diff = 2, w = w2)  # measures deviation from a linear change 
+        weight_Tikhonov = T2_mat+T1_mat
 
         # Tikhonov_matrix = np.zeros((3*nx + 3, 3*nx + 3))
         
@@ -1160,6 +1173,8 @@ class OE():
         var_3D_list_x = ['Sm_dB', 'Dm_dB', 'PR_dB', 'WC_dB']
         for var in var_3D_list_x:
             dpr_obj.MS[var][nscan,nrayMS,ind_any_hydro] = out_x[var]
+
+        
             
         for band in bands:
             var_out = 'z%sSim' % band
