@@ -9,5 +9,9 @@ Key Features:
     Leverage the xarray dataset to effortlessly create insightful plots and perform general analyses on GPM data.
 - Microphysical Retrieval for DPR Measurements:
     We've developed a specialized microphysical retrieval module dedicated to DPR (Dual-frequency Precipitation Radar) measurements. This empowers users to derive valuable insights from DPR data.
+- Data Download Script:
+    Explore our data download script that simplifies the retrieval process. To use this feature, ensure you are registered at the PPS server (https://arthurhouhttps.pps.eosdis.nasa.gov).
 - Example Notebook:
     Explore the 'test.ipynb' notebook to see a practical demonstration of how the microphysical retrieval can be seamlessly executed.
+
+

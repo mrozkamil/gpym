@@ -31,16 +31,7 @@ from . import representation
 
 home = os.path.expanduser("~")
 module_path = os.path.dirname(__file__)
-"""
 
-import sys
-sys.path.append(os.path.join(home, 'Scripts','Python3', 'gpym'))
-
-from gpym import simulate, misc, representation
-from gpym.retrieve import OE
-self = OE()
-module_path = os.path.join( home, 'Scripts', 'Python3', 'gpym', 'gpym')
-"""
 
 class ScaledPCA:
     def __init__(self, n_components = None, dsd_stat_fn = None):

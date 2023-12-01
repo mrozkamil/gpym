@@ -5,7 +5,7 @@ Created on Thu Feb 25 16:53:08 2021
 
 @author: km357
 """
-#!/local/anaconda3/bin/Python3
+
 # import sys
 import subprocess
 import os
