@@ -1090,7 +1090,7 @@ class OE():
                 plt.plot(zm_plot,alt_v, ':', color = 'C%d' % ib)
             plt.grid()
             plt.ylim(0, alt_v[0]+0.25,)
-            plt.xlim(12,46)
+            plt.xlim(12,50)
             plt.title(title_str)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'Z_meas_Z_sim_nrMS_%d_ns_%d_%s.png' % (
@@ -1109,7 +1109,7 @@ class OE():
                 plt.plot(zm_plot,alt_v, '--', color = 'C%d' % ib)
             plt.grid()
             plt.ylim(0, alt_v[0]+0.25,)
-            plt.xlim(12,46)
+            plt.xlim(12,50)
             plt.title(title_str)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'Z_e_Z_sim_nrMS_%d_ns_%d_%s.png' % (
@@ -1149,7 +1149,7 @@ class OE():
            
             plt.title('retrieval: "-", first guess: "--", melting: "x"')
             plt.legend()
-            plt.xlim(-10, 10)
+            plt.xlim(-10, 15)
             plt.ylim(0, alt_v[0]+0.25)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'retr_nrMS_%d_ns_%d_%s.png' % (
@@ -1165,7 +1165,7 @@ class OE():
             plt.title('retrieval: "-", DPR: "--"')
             plt.legend()
             plt.ylim(0, alt_v[0]+0.25,)
-            plt.xlim(0, 25)
+            plt.xlim(0, 30)
             plt.tight_layout(pad = 0.1)
             plt.savefig(os.path.join(fig_dir,'retr_vs_DPR_nrMS_%d_ns_%d_%s.png' % (
                 nrayMS, nscan, save_str)),)
