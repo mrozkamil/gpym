@@ -7,7 +7,7 @@ def readme():
 setup(name='gpym',
       version='0.1.0',
       description='tools to analyse the GPM-DPR data',
-      url='http://github.com/...',
+      url='https://github.com/mrozkamil/gpym',
       author='Kamil Mroz',
       author_email='kamil.mroz@le.ac.uk',
       license='MIT',
@@ -18,4 +18,4 @@ setup(name='gpym',
           'numpy', 'scipy', 
           'matplotlib', 'cartopy', 'seaborn',
           'xarray', 'dask', 'h5py', 'netCDF4', 'bottleneck', 'h5netcdf', 
-          'astropy', 'itur'])
+          'astropy', 'itur', 'dill',])
