@@ -4,7 +4,6 @@ authors:
 - family-names: Mroz
   given-names: Kamil
 orcid: https://orcid.org/0000-0002-3151-1300
-doi: https://zenodo.org/doi/10.5281/zenodo.10805217
 title:mrozkamil/gpym: DPR retrieval algorithm 
 version: v0.3.0
 date-released: 2024-03-11
