@@ -1,0 +1,32 @@
+            - name: Zenodo upload
+  # You may pin to the exact commit or the version.
+  # uses: megasanjay/upload-to-zenodo@3009588ff21c16cdb095be30cf424252b917b826
+  uses: megasanjay/upload-to-zenodo@v2.0.1
+  with:
+    # The GitHub token used to authenticated with GitHub.
+    github_token: # optional, default is ${{ github.token }}
+    # The Zenodo token used to authenticated with Zenodo.
+    zenodo_token: 
+    # The Zenodo deposition ID.
+    zenodo_deposition_id: 
+    # Whether to publish the deposition.
+    zenodo_publish: # optional, default is false
+    # Whether to upload to Zenodo sandbox or not.
+    zenodo_sandbox: # optional, default is false
+    # Username for commits
+    committer_name: # optional, default is 
+    # Email address for commits
+    committer_email: # optional, default is 
+    # Template for commit messages
+    commit_message: # optional, default is chore: update ${file_name} for Zenodo release
+    # Whether to update the metadata files
+    update_metadata_files: # optional, default is true
+    # The JSON file containing the codemeta metadata
+    codemeta_json: # optional, default is false
+    # The YAML file containing the citation metadata
+    citation_cff: # optional, default is false
+    # The JSON file containing the Zenodo metadata
+    zenodo_json: # optional, default is false
+    # The JSON file containing the compatibility documentation
+    docs_compatibility_json: # optional, default is false
+          
