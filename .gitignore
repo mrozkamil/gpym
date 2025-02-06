@@ -144,3 +144,9 @@ cython_debug/
 
 # large netCDF files
 *stats_Gamma.nc
+
+#vscode files
+.vscode
+
+#free file sync files
+.sync.*
